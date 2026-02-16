@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment History Workflow Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #667eea; }
+        h2 { color: #764ba2; margin-top: 0; }
+        .instruction {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-left: 4px solid #0066cc;
+            margin: 10px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .code {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #667eea;
+            color: white;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            background-color: #667eea;
+            color: white;
+        }
+        .btn:hover {
+            background-color: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Payment History Workflow Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Objective</h2>
+        <p>Verify that the payment history detail view works correctly with real data flow:</p>
+        <ol>
+            <li>Upload Excel file with payment data</li>
+            <li>Click on a player row in the table</li>
+            <li>Verify payment history modal displays correctly</li>
+            <li>Confirm all payments are shown with correct details</li>
+            <li>Verify chronological sorting</li>
+            <li>Confirm total amount paid is accurate</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 1: Create Sample Excel Data</h2>
+        <div class="instruction">
+            <strong>Instructions:</strong> Create an Excel file with the following data structure:
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Payer Name</th>
+                    <th>Player Name</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Campaign</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Mary Smith</td>
+                    <td>John Smith</td>
+                    <td>100</td>
+                    <td>2023-11-15</td>
+                    <td>Monthly</td>
+                </tr>
+                <tr>
+                    <td>Mary Smith</td>
+                    <td>John Smith</td>
+                    <td>100</td>
+                    <td>2023-12-15</td>
+                    <td>Monthly</td>
+                </tr>
+                <tr>
+                    <td>Mary Smith</td>
+                    <td>John Smith</td>
+                    <td>100</td>
+                    <td>2024-01-15</td>
+                    <td>Monthly</td>
+                </tr>
+                <tr>
+                    <td>Robert Johnson</td>
+                    <td>Sarah Johnson</td>
+                    <td>250</td>
+                    <td>2023-10-01</td>
+                    <td>Quarterly</td>
+                </tr>
+                <tr>
+                    <td>Robert Johnson</td>
+                    <td>Sarah Johnson</td>
+                    <td>250</td>
+                    <td>2024-01-01</td>
+                    <td>Quarterly</td>
+                </tr>
+                <tr>
+                    <td>Linda Davis</td>
+                    <td>Mike Davis</td>
+                    <td>1000</td>
+                    <td>2023-06-01</td>
+                    <td>Annual</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <button class="btn" onclick="downloadSampleCSV()">Download Sample CSV</button>
+        <p><small>Note: You can convert the CSV to Excel format or use it directly if your app supports CSV.</small></p>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 2: Test in Main Application</h2>
+        <div class="instruction">
+            <strong>Instructions:</strong>
+            <ol>
+                <li>Open <code>index.html</code> in your browser</li>
+                <li>Upload the sample Excel/CSV file</li>
+                <li>Wait for the data to be processed</li>
+                <li>Verify the table shows 3 players</li>
+            </ol>
+        </div>
+        <button class="btn" onclick="window.open('index.html', '_blank')">Open Main Application</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 3: Test Payment History Modal</h2>
+        <div class="instruction">
+            <strong>Test Checklist:</strong>
+        </div>
+        <ul>
+            <li>
+                <strong>Click on "John Smith" row:</strong>
+                <ul>
+                    <li>Modal should open</li>
+                    <li>Should show 3 payments</li>
+                    <li>Payments should be sorted: Nov 15, Dec 15, Jan 15</li>
+                    <li>Total amount paid should be $300.00</li>
+                    <li>Each payment should show date, amount ($100.00), and plan (Monthly)</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Click on "Sarah Johnson" row:</strong>
+                <ul>
+                    <li>Modal should open</li>
+                    <li>Should show 2 payments</li>
+                    <li>Payments should be sorted: Oct 1, Jan 1</li>
+                    <li>Total amount paid should be $500.00</li>
+                    <li>Each payment should show date, amount ($250.00), and plan (Quarterly)</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Click on "Mike Davis" row:</strong>
+                <ul>
+                    <li>Modal should open</li>
+                    <li>Should show 1 payment</li>
+                    <li>Payment date: Jun 1, 2023</li>
+                    <li>Total amount paid should be $1000.00</li>
+                    <li>Payment should show plan (Annual)</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 4: Verify Modal Functionality</h2>
+        <div class="instruction">
+            <strong>Additional Tests:</strong>
+        </div>
+        <ul>
+            <li>Click the X button to close the modal - should close</li>
+            <li>Click outside the modal (on the dark overlay) - should close</li>
+            <li>Open modal for different players - should update content correctly</li>
+            <li>Verify modal is scrollable if content is long</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>Expected Results</h2>
+        <div class="success">
+            <strong>✓ All Tests Should Pass:</strong>
+            <ul>
+                <li>Click handler works on all player rows</li>
+                <li>Modal opens and displays correct player information</li>
+                <li>All payments for the player are displayed</li>
+                <li>Payments are sorted chronologically (oldest first)</li>
+                <li>Each payment shows date, amount, and plan</li>
+                <li>Total amount paid is calculated correctly</li>
+                <li>Modal can be closed via X button or outside click</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Sample Data Summary</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Guardian</th>
+                    <th>Total Payments</th>
+                    <th>Total Amount</th>
+                    <th>Plan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>John Smith</td>
+                    <td>Mary Smith</td>
+                    <td>3</td>
+                    <td>$300.00</td>
+                    <td>Monthly</td>
+                </tr>
+                <tr>
+                    <td>Sarah Johnson</td>
+                    <td>Robert Johnson</td>
+                    <td>2</td>
+                    <td>$500.00</td>
+                    <td>Quarterly</td>
+                </tr>
+                <tr>
+                    <td>Mike Davis</td>
+                    <td>Linda Davis</td>
+                    <td>1</td>
+                    <td>$1000.00</td>
+                    <td>Annual</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function downloadSampleCSV() {
+            const csvContent = `Payer Name,Player Name,Amount,Date,Campaign
+Mary Smith,John Smith,100,2023-11-15,Monthly
+Mary Smith,John Smith,100,2023-12-15,Monthly
+Mary Smith,John Smith,100,2024-01-15,Monthly
+Robert Johnson,Sarah Johnson,250,2023-10-01,Quarterly
+Robert Johnson,Sarah Johnson,250,2024-01-01,Quarterly
+Linda Davis,Mike Davis,1000,2023-06-01,Annual`;
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sample-payment-data.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

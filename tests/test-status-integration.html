@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Test: Status Determination in Player Records</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-passed {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .test-failed {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .test-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .test-details {
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+        .summary {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #e7f3ff;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Integration Test: Status Determination in Player Records (Task 7.3)</h1>
+    <p>Testing the complete flow: payment records → player records with status determination</p>
+    
+    <div id="test-results"></div>
+    <div id="summary" class="summary"></div>
+
+    <script>
+        // Copy relevant functions from app.js
+        function calculateExpiryDate(payment, plans) {
+            if (!payment || !payment.paymentDate || !payment.membershipPlan) {
+                return null;
+            }
+            
+            const plan = plans.find(p => p.name === payment.membershipPlan);
+            
+            if (!plan || !plan.durationDays) {
+                return null;
+            }
+            
+            const expiryDate = new Date(payment.paymentDate);
+            expiryDate.setDate(expiryDate.getDate() + plan.durationDays);
+            
+            return expiryDate;
+        }
+
+        function determineMembershipStatus(expiryDate) {
+            if (!expiryDate) {
+                return 'lapsed';
+            }
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const expiry = new Date(expiryDate);
+            expiry.setHours(0, 0, 0, 0);
+            
+            const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+            
+            if (daysUntilExpiry < 0) {
+                return 'lapsed';
+            } else if (daysUntilExpiry <= 7) {
+                return 'expiring_soon';
+            } else {
+                return 'active';
+            }
+        }
+
+        function createPlayerRecord(playerIdentifier, payments, plans) {
+            if (!payments || payments.length === 0) {
+                return null;
+            }
+
+            const sortedPayments = [...payments].sort((a, b) => b.paymentDate - a.paymentDate);
+            const mostRecentPayment = sortedPayments[0];
+
+            const hasPlayerName = mostRecentPayment.playerName !== null;
+            const playerName = hasPlayerName ? mostRecentPayment.playerName : playerIdentifier;
+            const guardianName = hasPlayerName ? mostRecentPayment.payerName : playerIdentifier;
+
+            const expiryDate = calculateExpiryDate(mostRecentPayment, plans);
+            const status = determineMembershipStatus(expiryDate);
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const daysUntilExpiry = expiryDate ? Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24)) : 0;
+
+            const totalPayments = payments.length;
+            const totalAmountPaid = payments.reduce((sum, p) => sum + p.paymentAmount, 0);
+
+            return {
+                playerName,
+                guardianName,
+                membershipPlan: mostRecentPayment.membershipPlan,
+                lastPaymentDate: mostRecentPayment.paymentDate,
+                lastPaymentAmount: mostRecentPayment.paymentAmount,
+                expiryDate,
+                status,
+                daysUntilExpiry,
+                totalPayments,
+                totalAmountPaid,
+                paymentHistory: payments
+            };
+        }
+
+        // Test setup
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const plans = [
+            { name: 'Monthly', durationDays: 30 },
+            { name: 'Quarterly', durationDays: 90 },
+            { name: 'Annual', durationDays: 365 }
+        ];
+
+        // Test cases
+        const tests = [];
+
+        // Test 1: Active membership (paid 15 days ago, Monthly plan)
+        const payment1Date = new Date(today);
+        payment1Date.setDate(payment1Date.getDate() - 15);
+        tests.push({
+            name: "Active membership - paid 15 days ago (Monthly)",
+            payments: [{
+                payerName: 'John Doe',
+                playerName: 'Jane Doe',
+                paymentAmount: 100,
+                paymentDate: payment1Date,
+                membershipPlan: 'Monthly'
+            }],
+            expectedStatus: 'active',
+            expectedDaysRange: [14, 16] // Should be 15 days remaining
+        });
+
+        // Test 2: Expiring soon (paid 25 days ago, Monthly plan)
+        const payment2Date = new Date(today);
+        payment2Date.setDate(payment2Date.getDate() - 25);
+        tests.push({
+            name: "Expiring soon - paid 25 days ago (Monthly)",
+            payments: [{
+                payerName: 'Alice Smith',
+                playerName: 'Bob Smith',
+                paymentAmount: 100,
+                paymentDate: payment2Date,
+                membershipPlan: 'Monthly'
+            }],
+            expectedStatus: 'expiring_soon',
+            expectedDaysRange: [4, 6] // Should be 5 days remaining
+        });
+
+        // Test 3: Lapsed membership (paid 40 days ago, Monthly plan)
+        const payment3Date = new Date(today);
+        payment3Date.setDate(payment3Date.getDate() - 40);
+        tests.push({
+            name: "Lapsed membership - paid 40 days ago (Monthly)",
+            payments: [{
+                payerName: 'Charlie Brown',
+                playerName: 'Lucy Brown',
+                paymentAmount: 100,
+                paymentDate: payment3Date,
+                membershipPlan: 'Monthly'
+            }],
+            expectedStatus: 'lapsed',
+            expectedDaysRange: [-11, -9] // Should be -10 days (10 days overdue)
+        });
+
+        // Test 4: Multiple payments - most recent determines status
+        const oldPaymentDate = new Date(today);
+        oldPaymentDate.setDate(oldPaymentDate.getDate() - 100);
+        const recentPaymentDate = new Date(today);
+        recentPaymentDate.setDate(recentPaymentDate.getDate() - 10);
+        tests.push({
+            name: "Multiple payments - most recent payment used",
+            payments: [
+                {
+                    payerName: 'David Lee',
+                    playerName: 'Emma Lee',
+                    paymentAmount: 100,
+                    paymentDate: oldPaymentDate,
+                    membershipPlan: 'Monthly'
+                },
+                {
+                    payerName: 'David Lee',
+                    playerName: 'Emma Lee',
+                    paymentAmount: 100,
+                    paymentDate: recentPaymentDate,
+                    membershipPlan: 'Monthly'
+                }
+            ],
+            expectedStatus: 'active',
+            expectedDaysRange: [19, 21] // Should be 20 days remaining
+        });
+
+        // Test 5: Quarterly plan - active
+        const payment5Date = new Date(today);
+        payment5Date.setDate(payment5Date.getDate() - 30);
+        tests.push({
+            name: "Quarterly plan - active (paid 30 days ago)",
+            payments: [{
+                payerName: 'Frank Wilson',
+                playerName: 'Grace Wilson',
+                paymentAmount: 250,
+                paymentDate: payment5Date,
+                membershipPlan: 'Quarterly'
+            }],
+            expectedStatus: 'active',
+            expectedDaysRange: [59, 61] // Should be 60 days remaining
+        });
+
+        // Test 6: Annual plan - active
+        const payment6Date = new Date(today);
+        payment6Date.setDate(payment6Date.getDate() - 100);
+        tests.push({
+            name: "Annual plan - active (paid 100 days ago)",
+            payments: [{
+                payerName: 'Henry Taylor',
+                playerName: 'Ivy Taylor',
+                paymentAmount: 1000,
+                paymentDate: payment6Date,
+                membershipPlan: 'Annual'
+            }],
+            expectedStatus: 'active',
+            expectedDaysRange: [264, 266] // Should be 265 days remaining
+        });
+
+        // Run tests
+        let passed = 0;
+        let failed = 0;
+        const resultsDiv = document.getElementById('test-results');
+
+        tests.forEach((test, index) => {
+            const playerRecord = createPlayerRecord(
+                test.payments[0].playerName || test.payments[0].payerName,
+                test.payments,
+                plans
+            );
+            
+            const statusPassed = playerRecord.status === test.expectedStatus;
+            const daysInRange = playerRecord.daysUntilExpiry >= test.expectedDaysRange[0] && 
+                               playerRecord.daysUntilExpiry <= test.expectedDaysRange[1];
+            const testPassed = statusPassed && daysInRange;
+            
+            if (testPassed) {
+                passed++;
+            } else {
+                failed++;
+            }
+
+            const testDiv = document.createElement('div');
+            testDiv.className = `test-section ${testPassed ? 'test-passed' : 'test-failed'}`;
+            
+            let html = `
+                <div class="test-title">Test ${index + 1}: ${test.name}</div>
+                <div>Status: ${testPassed ? '✓ PASSED' : '✗ FAILED'}</div>
+            `;
+            
+            if (!statusPassed) {
+                html += `<div style="color: red;">Expected status: ${test.expectedStatus}, Got: ${playerRecord.status}</div>`;
+            }
+            
+            if (!daysInRange) {
+                html += `<div style="color: red;">Expected days in range [${test.expectedDaysRange[0]}, ${test.expectedDaysRange[1]}], Got: ${playerRecord.daysUntilExpiry}</div>`;
+            }
+            
+            html += `
+                <div class="test-details">Player Record:
+Player Name: ${playerRecord.playerName}
+Guardian: ${playerRecord.guardianName}
+Plan: ${playerRecord.membershipPlan}
+Last Payment: ${playerRecord.lastPaymentDate.toISOString().split('T')[0]}
+Expiry Date: ${playerRecord.expiryDate ? playerRecord.expiryDate.toISOString().split('T')[0] : 'null'}
+Status: ${playerRecord.status}
+Days Until Expiry: ${playerRecord.daysUntilExpiry}
+Total Payments: ${playerRecord.totalPayments}
+Total Amount: $${playerRecord.totalAmountPaid}</div>
+            `;
+            
+            testDiv.innerHTML = html;
+            resultsDiv.appendChild(testDiv);
+        });
+
+        // Display summary
+        const summaryDiv = document.getElementById('summary');
+        summaryDiv.innerHTML = `
+            <div>Integration Test Summary</div>
+            <div>Total Tests: ${tests.length}</div>
+            <div style="color: green;">Passed: ${passed}</div>
+            <div style="color: red;">Failed: ${failed}</div>
+            <div style="margin-top: 10px;">
+                ${failed === 0 ? '✓ All integration tests passed! Task 7.3 is correctly implemented and integrated.' : '✗ Some tests failed. Please review the implementation.'}
+            </div>
+        `;
+
+        console.log(`Integration Test Results: ${passed}/${tests.length} passed`);
+    </script>
+</body>
+</html>

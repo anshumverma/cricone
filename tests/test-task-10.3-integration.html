@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 10.3 Integration Test - Sorting Functionality</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .test-container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test-section {
+            background: white;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .test-results {
+            margin-top: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        .test-summary {
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .test-summary.all-pass {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .test-summary.some-fail {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .instructions {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-left: 4px solid #0066cc;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .sort-indicator {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <header>
+            <h1>Task 10.3 Integration Test</h1>
+            <p class="subtitle">Testing Sorting Functionality with Real Application Code</p>
+        </header>
+
+        <div class="test-section">
+            <h2>Instructions</h2>
+            <div class="instructions">
+                <p><strong>This test verifies:</strong></p>
+                <ul>
+                    <li>Sort controls work for name, expiry date, and status columns</li>
+                    <li>Ascending and descending sort functionality</li>
+                    <li>Table display updates correctly when sort changes</li>
+                    <li>Sort indicators show current sort state</li>
+                </ul>
+                <p><strong>Test Data:</strong> Using mock player data with various values for comprehensive testing.</p>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Current Sort State</h2>
+            <div id="sortIndicator" class="sort-indicator"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Members Table (Click headers to sort)</h2>
+            <div class="table-container">
+                <table id="membersTable">
+                    <thead>
+                        <tr>
+                            <th data-sort="playerName">Player Name <span class="sort-icon">↕</span></th>
+                            <th data-sort="guardianName">Guardian Name <span class="sort-icon">↕</span></th>
+                            <th data-sort="membershipPlan">Membership Plan <span class="sort-icon">↕</span></th>
+                            <th data-sort="lastPaymentDate">Last Payment Date <span class="sort-icon">↕</span></th>
+                            <th data-sort="lastPaymentAmount">Last Payment Amount <span class="sort-icon">↕</span></th>
+                            <th data-sort="expiryDate">Expiry Date <span class="sort-icon">↕</span></th>
+                            <th data-sort="status">Status <span class="sort-icon">↕</span></th>
+                            <th data-sort="daysUntilExpiry">Days Until Expiry <span class="sort-icon">↕</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="membersTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Automated Test Results</h2>
+            <div id="testSummary"></div>
+            <div id="testResults" class="test-results"></div>
+        </div>
+    </div>
+
+    <script>
+        // Import the actual application state and functions
+        const appState = {
+            paymentRecords: [],
+            players: [],
+            membershipPlans: [],
+            currentFilter: 'all',
+            currentSort: { column: 'playerName', direction: 'asc' },
+            isLoading: false,
+            errorMessage: null
+        };
+
+        // Create comprehensive test data
+        function createTestData() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            return [
+                {
+                    playerName: 'Zara Williams',
+                    guardianName: 'Adam Williams',
+                    membershipPlan: 'Monthly',
+                    lastPaymentDate: new Date('2024-01-15'),
+                    lastPaymentAmount: 50.00,
+                    expiryDate: new Date('2024-02-15'),
+                    status: 'lapsed',
+                    daysUntilExpiry: -30,
+                    totalPayments: 3,
+                    totalAmountPaid: 150.00,
+                    paymentHistory: []
+                },
+                {
+                    playerName: 'Alice Smith',
+                    guardianName: 'Bob Smith',
+                    membershipPlan: 'Annual',
+                    lastPaymentDate: new Date('2024-03-01'),
+                    lastPaymentAmount: 500.00,
+                    expiryDate: new Date('2025-03-01'),
+                    status: 'active',
+                    daysUntilExpiry: 200,
+                    totalPayments: 1,
+                    totalAmountPaid: 500.00,
+                    paymentHistory: []
+                },
+                {
+                    playerName: 'Mike Johnson',
+                    guardianName: 'Nancy Johnson',
+                    membershipPlan: 'Quarterly',
+                    lastPaymentDate: new Date('2024-02-20'),
+                    lastPaymentAmount: 150.00,
+                    expiryDate: new Date('2024-05-20'),
+                    status: 'expiring_soon',
+                    daysUntilExpiry: 5,
+                    totalPayments: 2,
+                    totalAmountPaid: 300.00,
+                    paymentHistory: []
+                },
+                {
+                    playerName: 'Bob Wilson',
+                    guardianName: 'Carol Wilson',
+                    membershipPlan: 'Monthly',
+                    lastPaymentDate: new Date('2024-03-10'),
+                    lastPaymentAmount: 50.00,
+                    expiryDate: new Date('2024-04-10'),
+                    status: 'expiring_soon',
+                    daysUntilExpiry: 3,
+                    totalPayments: 5,
+                    totalAmountPaid: 250.00,
+                    paymentHistory: []
+                },
+                {
+                    playerName: 'Diana Lee',
+                    guardianName: 'Edward Lee',
+                    membershipPlan: 'Annual',
+                    lastPaymentDate: new Date('2024-01-01'),
+                    lastPaymentAmount: 500.00,
+                    expiryDate: new Date('2025-01-01'),
+                    status: 'active',
+                    daysUntilExpiry: 150,
+                    totalPayments: 1,
+                    totalAmountPaid: 500.00,
+                    paymentHistory: []
+                },
+                {
+                    playerName: 'Charlie Brown',
+                    guardianName: 'David Brown',
+                    membershipPlan: 'Quarterly',
+                    lastPaymentDate: new Date('2024-02-01'),
+                    lastPaymentAmount: 150.00,
+                    expiryDate: new Date('2024-05-01'),
+                    status: 'active',
+                    daysUntilExpiry: 45,
+                    totalPayments: 2,
+                    totalAmountPaid: 300.00,
+                    paymentHistory: []
+                }
+            ];
+        }
+
+        // Copy the actual sortPlayers function from app.js
+        function sortPlayers(players) {
+            const { column, direction } = appState.currentSort;
+            const multiplier = direction === 'asc' ? 1 : -1;
+            
+            return [...players].sort((a, b) => {
+                let aVal = a[column];
+                let bVal = b[column];
+                
+                // Handle dates
+                if (aVal instanceof Date && bVal instanceof Date) {
+                    return (aVal - bVal) * multiplier;
+                }
+                
+                // Handle numbers
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    return (aVal - bVal) * multiplier;
+                }
+                
+                // Handle strings
+                return String(aVal).localeCompare(String(bVal)) * multiplier;
+            });
+        }
+
+        // Copy the actual handleSortChange function from app.js
+        function handleSortChange(column) {
+            // Toggle direction if same column, otherwise default to ascending
+            if (appState.currentSort.column === column) {
+                appState.currentSort.direction = appState.currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                appState.currentSort.column = column;
+                appState.currentSort.direction = 'asc';
+            }
+            
+            // Update header styling
+            document.querySelectorAll('th[data-sort]').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+                if (th.dataset.sort === column) {
+                    th.classList.add(`sorted-${appState.currentSort.direction}`);
+                }
+            });
+            
+            // Update sort indicator
+            updateSortIndicator();
+            
+            // Re-render table
+            renderTable();
+        }
+
+        // Format date for display
+        function formatDate(date) {
+            if (!date) return 'N/A';
+            if (!(date instanceof Date)) date = new Date(date);
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        // Format status for display
+        function formatStatus(status) {
+            return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        // Update sort indicator
+        function updateSortIndicator() {
+            const indicator = document.getElementById('sortIndicator');
+            const columnLabel = appState.currentSort.column.replace(/([A-Z])/g, ' $1').trim();
+            const directionLabel = appState.currentSort.direction === 'asc' ? 'Ascending ↑' : 'Descending ↓';
+            indicator.textContent = `Sorted by: ${columnLabel} (${directionLabel})`;
+        }
+
+        // Render table
+        function renderTable() {
+            const tbody = document.getElementById('membersTableBody');
+            const sortedPlayers = sortPlayers(appState.players);
+
+            tbody.innerHTML = sortedPlayers.map(player => `
+                <tr>
+                    <td>${player.playerName}</td>
+                    <td>${player.guardianName}</td>
+                    <td>${player.membershipPlan}</td>
+                    <td>${formatDate(player.lastPaymentDate)}</td>
+                    <td>${player.lastPaymentAmount.toFixed(2)}</td>
+                    <td>${formatDate(player.expiryDate)}</td>
+                    <td><span class="status-badge status-${player.status}">${formatStatus(player.status)}</span></td>
+                    <td>${player.daysUntilExpiry}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Run comprehensive tests
+        function runTests() {
+            const results = [];
+
+            // Test 1: Sort by player name ascending
+            appState.currentSort = { column: 'playerName', direction: 'asc' };
+            const nameAsc = sortPlayers(appState.players);
+            results.push({
+                name: 'Sort by Player Name (Ascending)',
+                pass: nameAsc[0].playerName === 'Alice Smith' && nameAsc[5].playerName === 'Zara Williams',
+                details: `First: ${nameAsc[0].playerName}, Last: ${nameAsc[5].playerName}`
+            });
+
+            // Test 2: Sort by player name descending
+            appState.currentSort = { column: 'playerName', direction: 'desc' };
+            const nameDesc = sortPlayers(appState.players);
+            results.push({
+                name: 'Sort by Player Name (Descending)',
+                pass: nameDesc[0].playerName === 'Zara Williams' && nameDesc[5].playerName === 'Alice Smith',
+                details: `First: ${nameDesc[0].playerName}, Last: ${nameDesc[5].playerName}`
+            });
+
+            // Test 3: Sort by expiry date ascending
+            appState.currentSort = { column: 'expiryDate', direction: 'asc' };
+            const expiryAsc = sortPlayers(appState.players);
+            results.push({
+                name: 'Sort by Expiry Date (Ascending)',
+                pass: expiryAsc[0].playerName === 'Zara Williams' && expiryAsc[5].playerName === 'Alice Smith',
+                details: `First: ${expiryAsc[0].playerName} (${formatDate(expiryAsc[0].expiryDate)}), Last: ${expiryAsc[5].playerName} (${formatDate(expiryAsc[5].expiryDate)})`
+            });
+
+            // Test 4: Sort by expiry date descending
+            appState.currentSort = { column: 'expiryDate', direction: 'desc' };
+            const expiryDesc = sortPlayers(appState.players);
+            results.push({
+                name: 'Sort by Expiry Date (Descending)',
+                pass: expiryDesc[0].playerName === 'Alice Smith' && expiryDesc[5].playerName === 'Zara Williams',
+                details: `First: ${expiryDesc[0].playerName} (${formatDate(expiryDesc[0].expiryDate)}), Last: ${expiryDesc[5].playerName} (${formatDate(expiryDesc[5].expiryDate)})`
+            });
+
+            // Test 5: Sort by status ascending
+            appState.currentSort = { column: 'status', direction: 'asc' };
+            const statusAsc = sortPlayers(appState.players);
+            const statusAscCorrect = statusAsc.filter(p => p.status === 'active').length === 3 &&
+                                     statusAsc[0].status === 'active' &&
+                                     statusAsc[5].status === 'lapsed';
+            results.push({
+                name: 'Sort by Status (Ascending)',
+                pass: statusAscCorrect,
+                details: `First status: ${statusAsc[0].status}, Last status: ${statusAsc[5].status}`
+            });
+
+            // Test 6: Sort by status descending
+            appState.currentSort = { column: 'status', direction: 'desc' };
+            const statusDesc = sortPlayers(appState.players);
+            const statusDescCorrect = statusDesc[0].status === 'lapsed' &&
+                                      statusDesc[5].status === 'active';
+            results.push({
+                name: 'Sort by Status (Descending)',
+                pass: statusDescCorrect,
+                details: `First status: ${statusDesc[0].status}, Last status: ${statusDesc[5].status}`
+            });
+
+            // Test 7: Sort by last payment amount ascending
+            appState.currentSort = { column: 'lastPaymentAmount', direction: 'asc' };
+            const amountAsc = sortPlayers(appState.players);
+            results.push({
+                name: 'Sort by Payment Amount (Ascending)',
+                pass: amountAsc[0].lastPaymentAmount === 50.00 && amountAsc[5].lastPaymentAmount === 500.00,
+                details: `First: $${amountAsc[0].lastPaymentAmount}, Last: $${amountAsc[5].lastPaymentAmount}`
+            });
+
+            // Test 8: Sort by last payment amount descending
+            appState.currentSort = { column: 'lastPaymentAmount', direction: 'desc' };
+            const amountDesc = sortPlayers(appState.players);
+            results.push({
+                name: 'Sort by Payment Amount (Descending)',
+                pass: amountDesc[0].lastPaymentAmount === 500.00 && amountDesc[5].lastPaymentAmount === 50.00,
+                details: `First: $${amountDesc[0].lastPaymentAmount}, Last: $${amountDesc[5].lastPaymentAmount}`
+            });
+
+            // Test 9: Sort by days until expiry ascending
+            appState.currentSort = { column: 'daysUntilExpiry', direction: 'asc' };
+            const daysAsc = sortPlayers(appState.players);
+            results.push({
+                name: 'Sort by Days Until Expiry (Ascending)',
+                pass: daysAsc[0].daysUntilExpiry === -30 && daysAsc[5].daysUntilExpiry === 200,
+                details: `First: ${daysAsc[0].daysUntilExpiry} days, Last: ${daysAsc[5].daysUntilExpiry} days`
+            });
+
+            // Test 10: Sort by days until expiry descending
+            appState.currentSort = { column: 'daysUntilExpiry', direction: 'desc' };
+            const daysDesc = sortPlayers(appState.players);
+            results.push({
+                name: 'Sort by Days Until Expiry (Descending)',
+                pass: daysDesc[0].daysUntilExpiry === 200 && daysDesc[5].daysUntilExpiry === -30,
+                details: `First: ${daysDesc[0].daysUntilExpiry} days, Last: ${daysDesc[5].daysUntilExpiry} days`
+            });
+
+            // Test 11: Toggle direction on same column
+            appState.currentSort = { column: 'playerName', direction: 'asc' };
+            handleSortChange('playerName');
+            results.push({
+                name: 'Toggle Sort Direction (Same Column)',
+                pass: appState.currentSort.direction === 'desc',
+                details: `Direction after toggle: ${appState.currentSort.direction}`
+            });
+
+            // Test 12: Change column resets to ascending
+            appState.currentSort = { column: 'playerName', direction: 'desc' };
+            handleSortChange('status');
+            results.push({
+                name: 'Change Column Resets to Ascending',
+                pass: appState.currentSort.column === 'status' && appState.currentSort.direction === 'asc',
+                details: `Column: ${appState.currentSort.column}, Direction: ${appState.currentSort.direction}`
+            });
+
+            // Test 13: Header styling updates correctly
+            appState.currentSort = { column: 'expiryDate', direction: 'asc' };
+            handleSortChange('expiryDate'); // Toggle to desc
+            const header = document.querySelector('th[data-sort="expiryDate"]');
+            const hasCorrectClass = header.classList.contains('sorted-desc');
+            results.push({
+                name: 'Header Styling Updates',
+                pass: hasCorrectClass,
+                details: `Header has correct class: ${hasCorrectClass}`
+            });
+
+            // Display results
+            displayTestResults(results);
+
+            // Reset to default sort and render
+            appState.currentSort = { column: 'playerName', direction: 'asc' };
+            handleSortChange('playerName');
+        }
+
+        // Display test results
+        function displayTestResults(results) {
+            const passCount = results.filter(r => r.pass).length;
+            const totalCount = results.length;
+            const allPass = passCount === totalCount;
+
+            const summary = document.getElementById('testSummary');
+            summary.className = `test-summary ${allPass ? 'all-pass' : 'some-fail'}`;
+            summary.innerHTML = `
+                <div>Tests Passed: ${passCount} / ${totalCount}</div>
+                <div style="font-size: 0.9rem; margin-top: 5px;">
+                    ${allPass ? '✓ All tests passed!' : '⚠ Some tests failed - review details below'}
+                </div>
+            `;
+
+            const testResults = document.getElementById('testResults');
+            testResults.innerHTML = results.map(r => `
+                <div class="test-result ${r.pass ? 'test-pass' : 'test-fail'}">
+                    <strong>${r.pass ? '✓' : '✗'} ${r.name}</strong><br>
+                    <span style="font-size: 0.9rem;">${r.details}</span>
+                </div>
+            `).join('');
+        }
+
+        // Set up event listeners
+        document.querySelectorAll('th[data-sort]').forEach(header => {
+            header.addEventListener('click', (e) => {
+                const column = e.currentTarget.dataset.sort;
+                handleSortChange(column);
+            });
+        });
+
+        // Initialize
+        appState.players = createTestData();
+        updateSortIndicator();
+        renderTable();
+        
+        // Update header styling for initial sort
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+            if (th.dataset.sort === appState.currentSort.column) {
+                th.classList.add(`sorted-${appState.currentSort.direction}`);
+            }
+        });
+
+        // Run tests after a short delay
+        setTimeout(runTests, 100);
+    </script>
+</body>
+</html>

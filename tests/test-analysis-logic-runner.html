@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Logic Test Runner - Checkpoint Task 9</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+        }
+        .header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+        .test-suite {
+            background: white;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-suite h2 {
+            color: #2c3e50;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .test-result {
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        .pass {
+            background-color: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        .fail {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        .summary {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+        .summary h2 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card.total {
+            background: #e7f3ff;
+            border: 2px solid #3498db;
+        }
+        .stat-card.passed {
+            background: #d4edda;
+            border: 2px solid #28a745;
+        }
+        .stat-card.failed {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+        }
+        .stat-number {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .stat-label {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .final-verdict {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .final-verdict.success {
+            background: #d4edda;
+            color: #155724;
+            border: 3px solid #28a745;
+        }
+        .final-verdict.failure {
+            background: #f8d7da;
+            color: #721c24;
+            border: 3px solid #dc3545;
+        }
+        .task-list {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+        }
+        .task-list h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .task-list ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .error-details {
+            background: #f8f9fa;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏏 Checkpoint Task 9: Verify Analysis Logic</h1>
+        <p>Testing Tasks 7.1-7.4 and 8.1 Implementation</p>
+    </div>
+
+    <div class="task-list">
+        <h3>Tasks Being Verified:</h3>
+        <ul>
+            <li><strong>Task 7.1:</strong> Player grouping logic</li>
+            <li><strong>Task 7.2:</strong> Expiry date calculation</li>
+            <li><strong>Task 7.3:</strong> Membership status determination</li>
+            <li><strong>Task 7.4:</strong> Payment totals and history</li>
+            <li><strong>Task 8.1:</strong> Duplicate detection logic</li>
+        </ul>
+    </div>
+
+    <div id="testSuites"></div>
+    
+    <div class="summary">
+        <h2>📊 Test Summary</h2>
+        <div class="summary-stats">
+            <div class="stat-card total">
+                <div class="stat-label">Total Tests</div>
+                <div class="stat-number" id="totalTests">0</div>
+            </div>
+            <div class="stat-card passed">
+                <div class="stat-label">Passed</div>
+                <div class="stat-number" id="passedTests">0</div>
+            </div>
+            <div class="stat-card failed">
+                <div class="stat-label">Failed</div>
+                <div class="stat-number" id="failedTests">0</div>
+            </div>
+        </div>
+        <div id="finalVerdict"></div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Test framework
+        const testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            suites: []
+        };
+
+        function assert(condition, message) {
+            if (!condition) {
+                throw new Error(message || 'Assertion failed');
+            }
+        }
+
+        function assertEqual(actual, expected, message) {
+            if (actual !== expected) {
+                throw new Error(`${message}: expected ${expected}, got ${actual}`);
+            }
+        }
+
+        function runTest(name, testFn) {
+            testResults.total++;
+            try {
+                testFn();
+                testResults.passed++;
+                return { name, status: 'PASS', error: null };
+            } catch (error) {
+                testResults.failed++;
+                return { name, status: 'FAIL', error: error.message };
+            }
+        }
+
+        // ============================================================================
+        // TASK 7.1: PLAYER GROUPING TESTS
+        // ============================================================================
+        function testPlayerGrouping() {
+            const tests = [];
+            const testPaymentRecords = [
+                {
+                    payerName: 'John Doe',
+                    playerName: 'Jane Doe',
+                    paymentAmount: 100,
+                    paymentDate: new Date('2024-01-15'),
+                    membershipPlan: 'Monthly',
+                    isComplete: true
+                },
+                {
+                    payerName: 'John Doe',
+                    playerName: 'Jane Doe',
+                    paymentAmount: 100,
+                    paymentDate: new Date('2024-02-15'),
+                    membershipPlan: 'Monthly',
+                    isComplete: true
+                },
+                {
+                    payerName: 'John Doe',
+                    playerName: 'Jack Doe',
+                    paymentAmount: 200,
+                    paymentDate: new Date('2024-01-20'),
+                    membershipPlan: 'Quarterly',
+                    isComplete: true
+                },
+                {
+                    payerName: 'Mary Smith',
+                    playerName: null,
+                    paymentAmount: 365,
+                    paymentDate: new Date('2024-01-01'),
+                    membershipPlan: 'Annual',
+                    isComplete: true
+                }
+            ];
+
+            const testPlans = [
+                { name: 'Monthly', durationDays: 30 },
+                { name: 'Quarterly', durationDays: 90 },
+                { name: 'Annual', durationDays: 365 }
+            ];
+
+            tests.push(runTest('Should group payments by player name', () => {
+                const grouped = groupPaymentsByPlayer(testPaymentRecords);
+                assert(grouped.size === 3, `Expected 3 unique players, got ${grouped.size}`);
+                assert(grouped.has('Jane Doe'), 'Should have Jane Doe');
+                assert(grouped.get('Jane Doe').length === 2, 'Jane Doe should have 2 payments');
+            }));
+
+            tests.push(runTest('Should create player records', () => {
+                const players = analyzePayments(testPaymentRecords, testPlans);
+                assert(players.length === 3, `Expected 3 player records, got ${players.length}`);
+            }));
+
+            tests.push(runTest('Should link players to guardians', () => {
+                const players = analyzePayments(testPaymentRecords, testPlans);
+                const janeDoe = players.find(p => p.playerName === 'Jane Doe');
+                assertEqual(janeDoe.guardianName, 'John Doe', 'Jane Doe guardian should be John Doe');
+            }));
+
+            tests.push(runTest('Should calculate payment totals', () => {
+                const players = analyzePayments(testPaymentRecords, testPlans);
+                const janeDoe = players.find(p => p.playerName === 'Jane Doe');
+                assertEqual(janeDoe.totalPayments, 2, 'Jane Doe should have 2 payments');
+                assertEqual(janeDoe.totalAmountPaid, 200, 'Jane Doe total should be 200');
+            }));
+
+            tests.push(runTest('Should use most recent payment for expiry', () => {
+                const players = analyzePayments(testPaymentRecords, testPlans);
+                const janeDoe = players.find(p => p.playerName === 'Jane Doe');
+                const expectedDate = new Date('2024-02-15');
+                assert(janeDoe.lastPaymentDate.getTime() === expectedDate.getTime(), 
+                       'Should use most recent payment date');
+            }));
+
+            return { suiteName: 'Task 7.1: Player Grouping Logic', tests };
+        }
+
+        // ============================================================================
+        // TASK 7.2: EXPIRY DATE CALCULATION TESTS
+        // ============================================================================
+        function testExpiryCalculation() {
+            const tests = [];
+            const plans = [
+                { name: 'Monthly', durationDays: 30 },
+                { name: 'Quarterly', durationDays: 90 },
+                { name: 'Annual', durationDays: 365 }
+            ];
+
+            tests.push(runTest('Should calculate expiry for Monthly plan', () => {
+                const payment = {
+                    paymentDate: new Date('2024-01-01'),
+                    membershipPlan: 'Monthly'
+                };
+                const result = calculateExpiryDate(payment, plans);
+                const expected = new Date('2024-01-31');
+                assert(result.getTime() === expected.getTime(), 
+                    `Expected ${expected.toISOString()}, got ${result.toISOString()}`);
+            }));
+
+            tests.push(runTest('Should calculate expiry for Quarterly plan', () => {
+                const payment = {
+                    paymentDate: new Date('2024-01-01'),
+                    membershipPlan: 'Quarterly'
+                };
+                const result = calculateExpiryDate(payment, plans);
+                const expected = new Date('2024-03-31');
+                assert(result.getTime() === expected.getTime(), 
+                    `Expected ${expected.toISOString()}, got ${result.toISOString()}`);
+            }));
+
+            tests.push(runTest('Should calculate expiry for Annual plan', () => {
+                const payment = {
+                    paymentDate: new Date('2024-01-01'),
+                    membershipPlan: 'Annual'
+                };
+                const result = calculateExpiryDate(payment, plans);
+                const expected = new Date('2024-12-31');
+                assert(result.getTime() === expected.getTime(), 
+                    `Expected ${expected.toISOString()}, got ${result.toISOString()}`);
+            }));
+
+            tests.push(runTest('Should return null for unknown plan', () => {
+                const payment = {
+                    paymentDate: new Date('2024-01-01'),
+                    membershipPlan: 'UnknownPlan'
+                };
+                const result = calculateExpiryDate(payment, plans);
+                assert(result === null, 'Should return null for unknown plan');
+            }));
+
+            tests.push(runTest('Should return null for missing payment date', () => {
+                const payment = {
+                    paymentDate: null,
+                    membershipPlan: 'Monthly'
+                };
+                const result = calculateExpiryDate(payment, plans);
+                assert(result === null, 'Should return null for missing payment date');
+            }));
+
+            return { suiteName: 'Task 7.2: Expiry Date Calculation', tests };
+        }
+
+        // ============================================================================
+        // TASK 7.3: MEMBERSHIP STATUS DETERMINATION TESTS
+        // ============================================================================
+        function testStatusDetermination() {
+            const tests = [];
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            tests.push(runTest('Should return "lapsed" for null expiry date', () => {
+                const status = determineMembershipStatus(null);
+                assertEqual(status, 'lapsed', 'Null expiry should be lapsed');
+            }));
+
+            tests.push(runTest('Should return "lapsed" for past expiry date', () => {
+                const past = new Date(today);
+                past.setDate(past.getDate() - 30);
+                const status = determineMembershipStatus(past);
+                assertEqual(status, 'lapsed', 'Past expiry should be lapsed');
+            }));
+
+            tests.push(runTest('Should return "expiring_soon" for today', () => {
+                const status = determineMembershipStatus(new Date(today));
+                assertEqual(status, 'expiring_soon', 'Today should be expiring_soon');
+            }));
+
+            tests.push(runTest('Should return "expiring_soon" for 7 days from now', () => {
+                const future = new Date(today);
+                future.setDate(future.getDate() + 7);
+                const status = determineMembershipStatus(future);
+                assertEqual(status, 'expiring_soon', '7 days should be expiring_soon');
+            }));
+
+            tests.push(runTest('Should return "active" for 8 days from now', () => {
+                const future = new Date(today);
+                future.setDate(future.getDate() + 8);
+                const status = determineMembershipStatus(future);
+                assertEqual(status, 'active', '8 days should be active');
+            }));
+
+            tests.push(runTest('Should return "active" for 30 days from now', () => {
+                const future = new Date(today);
+                future.setDate(future.getDate() + 30);
+                const status = determineMembershipStatus(future);
+                assertEqual(status, 'active', '30 days should be active');
+            }));
+
+            return { suiteName: 'Task 7.3: Membership Status Determination', tests };
+        }
+
+        // ============================================================================
+        // TASK 7.4: PAYMENT HISTORY TESTS
+        // ============================================================================
+        function testPaymentHistory() {
+            const tests = [];
+            const testPaymentRecords = [
+                {
+                    payerName: 'John Doe',
+                    playerName: 'Jane Doe',
+                    paymentAmount: 150,
+                    paymentDate: new Date('2024-03-15'),
+                    membershipPlan: 'Monthly',
+                    isComplete: true
+                },
+                {
+                    payerName: 'John Doe',
+                    playerName: 'Jane Doe',
+                    paymentAmount: 100,
+                    paymentDate: new Date('2024-01-15'),
+                    membershipPlan: 'Monthly',
+                    isComplete: true
+                },
+                {
+                    payerName: 'John Doe',
+                    playerName: 'Jane Doe',
+                    paymentAmount: 125,
+                    paymentDate: new Date('2024-02-15'),
+                    membershipPlan: 'Monthly',
+                    isComplete: true
+                }
+            ];
+
+            const testPlans = [{ name: 'Monthly', durationDays: 30 }];
+
+            tests.push(runTest('Should sum total amount paid per player', () => {
+                const players = analyzePayments(testPaymentRecords, testPlans);
+                const janeDoe = players.find(p => p.playerName === 'Jane Doe');
+                assertEqual(janeDoe.totalAmountPaid, 375, 'Total should be 375 (100+125+150)');
+            }));
+
+            tests.push(runTest('Should count total payments per player', () => {
+                const players = analyzePayments(testPaymentRecords, testPlans);
+                const janeDoe = players.find(p => p.playerName === 'Jane Doe');
+                assertEqual(janeDoe.totalPayments, 3, 'Should have 3 payments');
+            }));
+
+            tests.push(runTest('Should sort payment history chronologically', () => {
+                const players = analyzePayments(testPaymentRecords, testPlans);
+                const janeDoe = players.find(p => p.playerName === 'Jane Doe');
+                
+                const dates = janeDoe.paymentHistory.map(p => p.paymentDate.getTime());
+                for (let i = 1; i < dates.length; i++) {
+                    assert(dates[i] >= dates[i-1], 
+                        `Payment ${i} should be after payment ${i-1}`);
+                }
+            }));
+
+            tests.push(runTest('Should include all required fields in payment history', () => {
+                const players = analyzePayments(testPaymentRecords, testPlans);
+                const janeDoe = players.find(p => p.playerName === 'Jane Doe');
+                
+                janeDoe.paymentHistory.forEach((payment, index) => {
+                    assert(payment.paymentDate instanceof Date, 
+                        `Payment ${index} should have a valid date`);
+                    assert(typeof payment.paymentAmount === 'number', 
+                        `Payment ${index} should have a numeric amount`);
+                    assert(typeof payment.membershipPlan === 'string', 
+                        `Payment ${index} should have a plan name`);
+                });
+            }));
+
+            return { suiteName: 'Task 7.4: Payment Totals and History', tests };
+        }
+
+        // ============================================================================
+        // TASK 8.1: DUPLICATE DETECTION TESTS
+        // ============================================================================
+        function testDuplicateDetection() {
+            const tests = [];
+
+            tests.push(runTest('Should detect no duplicates in unique records', () => {
+                const records = [
+                    { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                    { payerName: "Jane Smith", paymentDate: new Date("2024-01-02"), paymentAmount: 150 }
+                ];
+                const result = detectDuplicates(records);
+                assertEqual(result.hasDuplicates, false, 'Should have no duplicates');
+                assertEqual(result.totalDuplicates, 0, 'Total duplicates should be 0');
+            }));
+
+            tests.push(runTest('Should detect exact duplicates', () => {
+                const records = [
+                    { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                    { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 }
+                ];
+                const result = detectDuplicates(records);
+                assertEqual(result.hasDuplicates, true, 'Should have duplicates');
+                assertEqual(result.totalDuplicates, 1, 'Should have 1 duplicate');
+            }));
+
+            tests.push(runTest('Should detect multiple duplicate groups', () => {
+                const records = [
+                    { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                    { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                    { payerName: "Jane Smith", paymentDate: new Date("2024-01-02"), paymentAmount: 150 },
+                    { payerName: "Jane Smith", paymentDate: new Date("2024-01-02"), paymentAmount: 150 }
+                ];
+                const result = detectDuplicates(records);
+                assertEqual(result.hasDuplicates, true, 'Should have duplicates');
+                assertEqual(result.totalDuplicates, 2, 'Should have 2 duplicates');
+            }));
+
+            tests.push(runTest('Should be case insensitive for payer names', () => {
+                const records = [
+                    { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                    { payerName: "john doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                    { payerName: "JOHN DOE", paymentDate: new Date("2024-01-01"), paymentAmount: 100 }
+                ];
+                const result = detectDuplicates(records);
+                assertEqual(result.hasDuplicates, true, 'Should detect case-insensitive duplicates');
+                assertEqual(result.totalDuplicates, 2, 'Should have 2 duplicates');
+            }));
+
+            tests.push(runTest('Should not detect duplicates with different amounts', () => {
+                const records = [
+                    { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                    { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 150 }
+                ];
+                const result = detectDuplicates(records);
+                assertEqual(result.hasDuplicates, false, 'Different amounts should not be duplicates');
+            }));
+
+            tests.push(runTest('Should not detect duplicates with different dates', () => {
+                const records = [
+                    { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                    { payerName: "John Doe", paymentDate: new Date("2024-01-02"), paymentAmount: 100 }
+                ];
+                const result = detectDuplicates(records);
+                assertEqual(result.hasDuplicates, false, 'Different dates should not be duplicates');
+            }));
+
+            return { suiteName: 'Task 8.1: Duplicate Detection Logic', tests };
+        }
+
+        // ============================================================================
+        // RUN ALL TESTS AND DISPLAY RESULTS
+        // ============================================================================
+        function runAllTests() {
+            const suites = [
+                testPlayerGrouping(),
+                testExpiryCalculation(),
+                testStatusDetermination(),
+                testPaymentHistory(),
+                testDuplicateDetection()
+            ];
+
+            const suitesDiv = document.getElementById('testSuites');
+            
+            suites.forEach(suite => {
+                const suiteDiv = document.createElement('div');
+                suiteDiv.className = 'test-suite';
+                
+                let html = `<h2>${suite.suiteName}</h2>`;
+                
+                suite.tests.forEach(test => {
+                    html += `<div class="test-result ${test.status === 'PASS' ? 'pass' : 'fail'}">`;
+                    html += `<strong>${test.status === 'PASS' ? '✓' : '✗'}</strong> ${test.name}`;
+                    if (test.error) {
+                        html += `<div class="error-details">${test.error}</div>`;
+                    }
+                    html += `</div>`;
+                });
+                
+                suiteDiv.innerHTML = html;
+                suitesDiv.appendChild(suiteDiv);
+            });
+
+            // Update summary
+            document.getElementById('totalTests').textContent = testResults.total;
+            document.getElementById('passedTests').textContent = testResults.passed;
+            document.getElementById('failedTests').textContent = testResults.failed;
+
+            // Final verdict
+            const verdictDiv = document.getElementById('finalVerdict');
+            if (testResults.failed === 0) {
+                verdictDiv.className = 'final-verdict success';
+                verdictDiv.innerHTML = `
+                    <div>✅ ALL TESTS PASSED!</div>
+                    <div style="font-size: 16px; margin-top: 10px; font-weight: normal;">
+                        All analysis logic (Tasks 7.1-7.4 and 8.1) is working correctly.
+                        Ready to proceed to UI implementation tasks.
+                    </div>
+                `;
+            } else {
+                verdictDiv.className = 'final-verdict failure';
+                verdictDiv.innerHTML = `
+                    <div>❌ SOME TESTS FAILED</div>
+                    <div style="font-size: 16px; margin-top: 10px; font-weight: normal;">
+                        ${testResults.failed} test(s) failed. Please review the errors above.
+                    </div>
+                `;
+            }
+        }
+
+        // Run tests when page loads
+        runAllTests();
+    </script>
+</body>
+</html>

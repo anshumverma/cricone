@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Expiry Date Calculation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        h2 {
+            margin-top: 0;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Expiry Date Calculation Tests</h1>
+    <div id="testResults"></div>
+
+    <script>
+        // Test helper functions
+        function assert(condition, message) {
+            if (!condition) {
+                throw new Error(message || 'Assertion failed');
+            }
+        }
+
+        function formatDate(date) {
+            if (!date) return 'null';
+            return date.toISOString().split('T')[0];
+        }
+
+        // Copy the functions from app.js that we're testing
+        function calculateExpiryDate(payment, plans) {
+            if (!payment || !payment.paymentDate || !payment.membershipPlan) {
+                return null;
+            }
+            
+            // Find the matching plan
+            const plan = plans.find(p => p.name === payment.membershipPlan);
+            
+            if (!plan || !plan.durationDays) {
+                return null;
+            }
+            
+            // Calculate expiry date: payment date + plan duration
+            const expiryDate = new Date(payment.paymentDate);
+            expiryDate.setDate(expiryDate.getDate() + plan.durationDays);
+            
+            return expiryDate;
+        }
+
+        // Test cases
+        const tests = [];
+
+        // Test 1: Calculate expiry date with known plan
+        tests.push({
+            name: 'Test 1: Calculate expiry date with Monthly plan (30 days)',
+            run: () => {
+                const plans = [{ name: 'Monthly', durationDays: 30 }];
+                const payment = {
+                    paymentDate: new Date('2024-01-01'),
+                    membershipPlan: 'Monthly'
+                };
+                
+                const result = calculateExpiryDate(payment, plans);
+                const expected = new Date('2024-01-31');
+                
+                assert(result !== null, 'Result should not be null');
+                assert(result.getTime() === expected.getTime(), 
+                    `Expected ${formatDate(expected)}, got ${formatDate(result)}`);
+                
+                return `✓ Expiry date correctly calculated: ${formatDate(result)}`;
+            }
+        });
+
+        // Test 2: Calculate expiry date with Quarterly plan
+        tests.push({
+            name: 'Test 2: Calculate expiry date with Quarterly plan (90 days)',
+            run: () => {
+                const plans = [{ name: 'Quarterly', durationDays: 90 }];
+                const payment = {
+                    paymentDate: new Date('2024-01-01'),
+                    membershipPlan: 'Quarterly'
+                };
+                
+                const result = calculateExpiryDate(payment, plans);
+                const expected = new Date('2024-03-31');
+                
+                assert(result !== null, 'Result should not be null');
+                assert(result.getTime() === expected.getTime(), 
+                    `Expected ${formatDate(expected)}, got ${formatDate(result)}`);
+                
+                return `✓ Expiry date correctly calculated: ${formatDate(result)}`;
+            }
+        });
+
+        // Test 3: Calculate expiry date with Annual plan
+        tests.push({
+            name: 'Test 3: Calculate expiry date with Annual plan (365 days)',
+            run: () => {
+                const plans = [{ name: 'Annual', durationDays: 365 }];
+                const payment = {
+                    paymentDate: new Date('2024-01-01'),
+                    membershipPlan: 'Annual'
+                };
+                
+                const result = calculateExpiryDate(payment, plans);
+                const expected = new Date('2024-12-31');
+                
+                assert(result !== null, 'Result should not be null');
+                assert(result.getTime() === expected.getTime(), 
+                    `Expected ${formatDate(expected)}, got ${formatDate(result)}`);
+                
+                return `✓ Expiry date correctly calculated: ${formatDate(result)}`;
+            }
+        });
+
+        // Test 4: Handle unknown membership plan
+        tests.push({
+            name: 'Test 4: Handle unknown membership plan',
+            run: () => {
+                const plans = [{ name: 'Monthly', durationDays: 30 }];
+                const payment = {
+                    paymentDate: new Date('2024-01-01'),
+                    membershipPlan: 'UnknownPlan'
+                };
+                
+                const result = calculateExpiryDate(payment, plans);
+                
+                assert(result === null, 'Result should be null for unknown plan');
+                
+                return `✓ Unknown plan correctly returns null`;
+            }
+        });
+
+        // Test 5: Handle missing payment date
+        tests.push({
+            name: 'Test 5: Handle missing payment date',
+            run: () => {
+                const plans = [{ name: 'Monthly', durationDays: 30 }];
+                const payment = {
+                    paymentDate: null,
+                    membershipPlan: 'Monthly'
+                };
+                
+                const result = calculateExpiryDate(payment, plans);
+                
+                assert(result === null, 'Result should be null for missing payment date');
+                
+                return `✓ Missing payment date correctly returns null`;
+            }
+        });
+
+        // Test 6: Handle missing membership plan
+        tests.push({
+            name: 'Test 6: Handle missing membership plan',
+            run: () => {
+                const plans = [{ name: 'Monthly', durationDays: 30 }];
+                const payment = {
+                    paymentDate: new Date('2024-01-01'),
+                    membershipPlan: null
+                };
+                
+                const result = calculateExpiryDate(payment, plans);
+                
+                assert(result === null, 'Result should be null for missing membership plan');
+                
+                return `✓ Missing membership plan correctly returns null`;
+            }
+        });
+
+        // Test 7: Calculate expiry with leap year
+        tests.push({
+            name: 'Test 7: Calculate expiry date across leap year',
+            run: () => {
+                const plans = [{ name: 'Monthly', durationDays: 30 }];
+                const payment = {
+                    paymentDate: new Date('2024-02-01'),
+                    membershipPlan: 'Monthly'
+                };
+                
+                const result = calculateExpiryDate(payment, plans);
+                const expected = new Date('2024-03-02');
+                
+                assert(result !== null, 'Result should not be null');
+                assert(result.getTime() === expected.getTime(), 
+                    `Expected ${formatDate(expected)}, got ${formatDate(result)}`);
+                
+                return `✓ Leap year calculation correct: ${formatDate(result)}`;
+            }
+        });
+
+        // Test 8: Multiple plans available, match correct one
+        tests.push({
+            name: 'Test 8: Match correct plan from multiple plans',
+            run: () => {
+                const plans = [
+                    { name: 'Monthly', durationDays: 30 },
+                    { name: 'Quarterly', durationDays: 90 },
+                    { name: 'Annual', durationDays: 365 }
+                ];
+                const payment = {
+                    paymentDate: new Date('2024-01-01'),
+                    membershipPlan: 'Quarterly'
+                };
+                
+                const result = calculateExpiryDate(payment, plans);
+                const expected = new Date('2024-03-31');
+                
+                assert(result !== null, 'Result should not be null');
+                assert(result.getTime() === expected.getTime(), 
+                    `Expected ${formatDate(expected)}, got ${formatDate(result)}`);
+                
+                return `✓ Correct plan matched: ${formatDate(result)}`;
+            }
+        });
+
+        // Run all tests
+        const resultsDiv = document.getElementById('testResults');
+        let passCount = 0;
+        let failCount = 0;
+
+        tests.forEach(test => {
+            const section = document.createElement('div');
+            section.className = 'test-section';
+            
+            const title = document.createElement('h2');
+            title.textContent = test.name;
+            section.appendChild(title);
+            
+            try {
+                const result = test.run();
+                section.classList.add('test-pass');
+                const resultText = document.createElement('p');
+                resultText.textContent = result;
+                section.appendChild(resultText);
+                passCount++;
+            } catch (error) {
+                section.classList.add('test-fail');
+                const errorText = document.createElement('p');
+                errorText.textContent = `✗ ${error.message}`;
+                section.appendChild(errorText);
+                
+                const stackTrace = document.createElement('pre');
+                stackTrace.textContent = error.stack;
+                section.appendChild(stackTrace);
+                failCount++;
+            }
+            
+            resultsDiv.appendChild(section);
+        });
+
+        // Summary
+        const summary = document.createElement('div');
+        summary.className = 'test-section';
+        summary.style.backgroundColor = failCount === 0 ? '#d4edda' : '#fff3cd';
+        summary.innerHTML = `
+            <h2>Test Summary</h2>
+            <p><strong>Total:</strong> ${tests.length} tests</p>
+            <p><strong>Passed:</strong> ${passCount}</p>
+            <p><strong>Failed:</strong> ${failCount}</p>
+        `;
+        resultsDiv.insertBefore(summary, resultsDiv.firstChild);
+    </script>
+</body>
+</html>

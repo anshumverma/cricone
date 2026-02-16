@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test: Membership Status Determination</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-passed {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .test-failed {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .test-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .test-details {
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .summary {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #e7f3ff;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test: Membership Status Determination (Task 7.3)</h1>
+    <p>Testing Requirements 4.3 and 4.4: Calculate days until expiry and determine membership status</p>
+    
+    <div id="test-results"></div>
+    <div id="summary" class="summary"></div>
+
+    <script>
+        // Copy the relevant functions from app.js
+        function determineMembershipStatus(expiryDate) {
+            if (!expiryDate) {
+                return 'lapsed';
+            }
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const expiry = new Date(expiryDate);
+            expiry.setHours(0, 0, 0, 0);
+            
+            // Calculate days until expiry
+            const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+            
+            if (daysUntilExpiry < 0) {
+                return 'lapsed';
+            } else if (daysUntilExpiry <= 7) {
+                return 'expiring_soon';
+            } else {
+                return 'active';
+            }
+        }
+
+        function calculateDaysUntilExpiry(expiryDate) {
+            if (!expiryDate) {
+                return 0;
+            }
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const expiry = new Date(expiryDate);
+            expiry.setHours(0, 0, 0, 0);
+            
+            return Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+        }
+
+        // Test cases
+        const tests = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Test 1: Null expiry date should return 'lapsed'
+        tests.push({
+            name: "Null expiry date returns 'lapsed'",
+            expiryDate: null,
+            expectedStatus: 'lapsed',
+            expectedDays: 0
+        });
+
+        // Test 2: Past expiry date (30 days ago) should return 'lapsed'
+        const past30Days = new Date(today);
+        past30Days.setDate(past30Days.getDate() - 30);
+        tests.push({
+            name: "Expiry 30 days ago returns 'lapsed'",
+            expiryDate: past30Days,
+            expectedStatus: 'lapsed',
+            expectedDays: -30
+        });
+
+        // Test 3: Yesterday should return 'lapsed'
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        tests.push({
+            name: "Expiry yesterday returns 'lapsed'",
+            expiryDate: yesterday,
+            expectedStatus: 'lapsed',
+            expectedDays: -1
+        });
+
+        // Test 4: Today should return 'expiring_soon'
+        tests.push({
+            name: "Expiry today returns 'expiring_soon'",
+            expiryDate: new Date(today),
+            expectedStatus: 'expiring_soon',
+            expectedDays: 0
+        });
+
+        // Test 5: Tomorrow should return 'expiring_soon'
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tests.push({
+            name: "Expiry tomorrow returns 'expiring_soon'",
+            expiryDate: tomorrow,
+            expectedStatus: 'expiring_soon',
+            expectedDays: 1
+        });
+
+        // Test 6: 7 days from now should return 'expiring_soon'
+        const in7Days = new Date(today);
+        in7Days.setDate(in7Days.getDate() + 7);
+        tests.push({
+            name: "Expiry in 7 days returns 'expiring_soon'",
+            expiryDate: in7Days,
+            expectedStatus: 'expiring_soon',
+            expectedDays: 7
+        });
+
+        // Test 7: 8 days from now should return 'active'
+        const in8Days = new Date(today);
+        in8Days.setDate(in8Days.getDate() + 8);
+        tests.push({
+            name: "Expiry in 8 days returns 'active'",
+            expiryDate: in8Days,
+            expectedStatus: 'active',
+            expectedDays: 8
+        });
+
+        // Test 8: 30 days from now should return 'active'
+        const in30Days = new Date(today);
+        in30Days.setDate(in30Days.getDate() + 30);
+        tests.push({
+            name: "Expiry in 30 days returns 'active'",
+            expiryDate: in30Days,
+            expectedStatus: 'active',
+            expectedDays: 30
+        });
+
+        // Test 9: 365 days from now should return 'active'
+        const in365Days = new Date(today);
+        in365Days.setDate(in365Days.getDate() + 365);
+        tests.push({
+            name: "Expiry in 365 days returns 'active'",
+            expiryDate: in365Days,
+            expectedStatus: 'active',
+            expectedDays: 365
+        });
+
+        // Run tests
+        let passed = 0;
+        let failed = 0;
+        const resultsDiv = document.getElementById('test-results');
+
+        tests.forEach((test, index) => {
+            const actualStatus = determineMembershipStatus(test.expiryDate);
+            const actualDays = calculateDaysUntilExpiry(test.expiryDate);
+            
+            const statusPassed = actualStatus === test.expectedStatus;
+            const daysPassed = actualDays === test.expectedDays;
+            const testPassed = statusPassed && daysPassed;
+            
+            if (testPassed) {
+                passed++;
+            } else {
+                failed++;
+            }
+
+            const testDiv = document.createElement('div');
+            testDiv.className = `test-section ${testPassed ? 'test-passed' : 'test-failed'}`;
+            
+            let html = `
+                <div class="test-title">Test ${index + 1}: ${test.name}</div>
+                <div>Status: ${testPassed ? '✓ PASSED' : '✗ FAILED'}</div>
+            `;
+            
+            if (!statusPassed) {
+                html += `<div style="color: red;">Expected status: ${test.expectedStatus}, Got: ${actualStatus}</div>`;
+            }
+            
+            if (!daysPassed) {
+                html += `<div style="color: red;">Expected days: ${test.expectedDays}, Got: ${actualDays}</div>`;
+            }
+            
+            html += `
+                <div class="test-details">
+                    Expiry Date: ${test.expiryDate ? test.expiryDate.toISOString().split('T')[0] : 'null'}<br>
+                    Expected Status: ${test.expectedStatus}<br>
+                    Actual Status: ${actualStatus}<br>
+                    Expected Days: ${test.expectedDays}<br>
+                    Actual Days: ${actualDays}
+                </div>
+            `;
+            
+            testDiv.innerHTML = html;
+            resultsDiv.appendChild(testDiv);
+        });
+
+        // Display summary
+        const summaryDiv = document.getElementById('summary');
+        summaryDiv.innerHTML = `
+            <div>Test Summary</div>
+            <div>Total Tests: ${tests.length}</div>
+            <div style="color: green;">Passed: ${passed}</div>
+            <div style="color: red;">Failed: ${failed}</div>
+            <div style="margin-top: 10px;">
+                ${failed === 0 ? '✓ All tests passed! Task 7.3 is correctly implemented.' : '✗ Some tests failed. Please review the implementation.'}
+            </div>
+        `;
+
+        console.log(`Test Results: ${passed}/${tests.length} passed`);
+    </script>
+</body>
+</html>

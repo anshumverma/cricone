@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Expiry Calculation Integration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        h2 {
+            margin-top: 0;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <h1>Expiry Date Calculation Integration Tests</h1>
+    <p>Testing the full flow: multiple payments → find most recent → calculate expiry → handle unknown plans</p>
+    <div id="testResults"></div>
+
+    <script>
+        // Test helper functions
+        function assert(condition, message) {
+            if (!condition) {
+                throw new Error(message || 'Assertion failed');
+            }
+        }
+
+        function formatDate(date) {
+            if (!date) return 'null';
+            return date.toISOString().split('T')[0];
+        }
+
+        // Copy the functions from app.js
+        function calculateExpiryDate(payment, plans) {
+            if (!payment || !payment.paymentDate || !payment.membershipPlan) {
+                return null;
+            }
+            
+            const plan = plans.find(p => p.name === payment.membershipPlan);
+            
+            if (!plan || !plan.durationDays) {
+                return null;
+            }
+            
+            const expiryDate = new Date(payment.paymentDate);
+            expiryDate.setDate(expiryDate.getDate() + plan.durationDays);
+            
+            return expiryDate;
+        }
+
+        function groupPaymentsByPlayer(records) {
+            const playerPaymentsMap = new Map();
+            
+            for (const record of records) {
+                const playerIdentifier = record.playerName || record.payerName;
+                
+                if (!playerIdentifier) {
+                    continue;
+                }
+                
+                if (!playerPaymentsMap.has(playerIdentifier)) {
+                    playerPaymentsMap.set(playerIdentifier, []);
+                }
+                
+                playerPaymentsMap.get(playerIdentifier).push(record);
+            }
+            
+            return playerPaymentsMap;
+        }
+
+        function determineMembershipStatus(expiryDate) {
+            if (!expiryDate) {
+                return 'lapsed';
+            }
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const expiry = new Date(expiryDate);
+            expiry.setHours(0, 0, 0, 0);
+            
+            const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+            
+            if (daysUntilExpiry < 0) {
+                return 'lapsed';
+            } else if (daysUntilExpiry <= 7) {
+                return 'expiring_soon';
+            } else {
+                return 'active';
+            }
+        }
+
+        function createPlayerRecord(playerIdentifier, payments, plans) {
+            if (!payments || payments.length === 0) {
+                return null;
+            }
+            
+            const sortedPayments = [...payments].sort((a, b) => b.paymentDate - a.paymentDate);
+            const mostRecentPayment = sortedPayments[0];
+            
+            const hasPlayerName = mostRecentPayment.playerName !== null;
+            const playerName = hasPlayerName ? mostRecentPayment.playerName : playerIdentifier;
+            const guardianName = hasPlayerName ? mostRecentPayment.payerName : playerIdentifier;
+            
+            const plan = plans.find(p => p.name === mostRecentPayment.membershipPlan);
+            const hasUnknownPlan = !plan;
+            
+            const expiryDate = calculateExpiryDate(mostRecentPayment, plans);
+            const status = determineMembershipStatus(expiryDate);
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const daysUntilExpiry = expiryDate ? Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24)) : 0;
+            
+            const totalPayments = payments.length;
+            const totalAmountPaid = payments.reduce((sum, p) => sum + p.paymentAmount, 0);
+            
+            const paymentHistory = [...payments].sort((a, b) => a.paymentDate - b.paymentDate);
+            
+            return {
+                playerName,
+                guardianName,
+                membershipPlan: mostRecentPayment.membershipPlan,
+                lastPaymentDate: mostRecentPayment.paymentDate,
+                lastPaymentAmount: mostRecentPayment.paymentAmount,
+                expiryDate,
+                status,
+                daysUntilExpiry,
+                totalPayments,
+                totalAmountPaid,
+                paymentHistory,
+                hasUnknownPlan
+            };
+        }
+
+        // Test cases
+        const tests = [];
+
+        // Test 1: Player with single payment
+        tests.push({
+            name: 'Test 1: Player with single payment - expiry calculated correctly',
+            run: () => {
+                const plans = [{ name: 'Monthly', durationDays: 30 }];
+                const payments = [
+                    {
+                        payerName: 'John Doe',
+                        playerName: 'Jane Doe',
+                        paymentAmount: 100,
+                        paymentDate: new Date('2024-01-01'),
+                        membershipPlan: 'Monthly',
+                        isComplete: true
+                    }
+                ];
+                
+                const playerMap = groupPaymentsByPlayer(payments);
+                const player = createPlayerRecord('Jane Doe', playerMap.get('Jane Doe'), plans);
+                
+                assert(player !== null, 'Player should be created');
+                assert(player.expiryDate !== null, 'Expiry date should be calculated');
+                assert(formatDate(player.expiryDate) === '2024-01-31', 
+                    `Expected 2024-01-31, got ${formatDate(player.expiryDate)}`);
+                assert(player.hasUnknownPlan === false, 'Plan should be known');
+                
+                return `✓ Single payment expiry: ${formatDate(player.expiryDate)}`;
+            }
+        });
+
+        // Test 2: Player with multiple payments - most recent used
+        tests.push({
+            name: 'Test 2: Player with multiple payments - most recent payment used',
+            run: () => {
+                const plans = [{ name: 'Monthly', durationDays: 30 }];
+                const payments = [
+                    {
+                        payerName: 'John Doe',
+                        playerName: 'Jane Doe',
+                        paymentAmount: 100,
+                        paymentDate: new Date('2024-01-01'),
+                        membershipPlan: 'Monthly',
+                        isComplete: true
+                    },
+                    {
+                        payerName: 'John Doe',
+                        playerName: 'Jane Doe',
+                        paymentAmount: 100,
+                        paymentDate: new Date('2024-02-01'),
+                        membershipPlan: 'Monthly',
+                        isComplete: true
+                    },
+                    {
+                        payerName: 'John Doe',
+                        playerName: 'Jane Doe',
+                        paymentAmount: 100,
+                        paymentDate: new Date('2024-03-01'),
+                        membershipPlan: 'Monthly',
+                        isComplete: true
+                    }
+                ];
+                
+                const playerMap = groupPaymentsByPlayer(payments);
+                const player = createPlayerRecord('Jane Doe', playerMap.get('Jane Doe'), plans);
+                
+                assert(player !== null, 'Player should be created');
+                assert(formatDate(player.lastPaymentDate) === '2024-03-01', 
+                    `Most recent payment should be 2024-03-01, got ${formatDate(player.lastPaymentDate)}`);
+                assert(formatDate(player.expiryDate) === '2024-03-31', 
+                    `Expected expiry 2024-03-31, got ${formatDate(player.expiryDate)}`);
+                assert(player.totalPayments === 3, 'Should have 3 total payments');
+                
+                return `✓ Most recent payment (${formatDate(player.lastPaymentDate)}) used, expiry: ${formatDate(player.expiryDate)}`;
+            }
+        });
+
+        // Test 3: Player with unknown membership plan
+        tests.push({
+            name: 'Test 3: Player with unknown membership plan - flagged correctly',
+            run: () => {
+                const plans = [{ name: 'Monthly', durationDays: 30 }];
+                const payments = [
+                    {
+                        payerName: 'John Doe',
+                        playerName: 'Jane Doe',
+                        paymentAmount: 100,
+                        paymentDate: new Date('2024-01-01'),
+                        membershipPlan: 'CustomPlan',
+                        isComplete: true
+                    }
+                ];
+                
+                const playerMap = groupPaymentsByPlayer(payments);
+                const player = createPlayerRecord('Jane Doe', playerMap.get('Jane Doe'), plans);
+                
+                assert(player !== null, 'Player should be created');
+                assert(player.hasUnknownPlan === true, 'Unknown plan should be flagged');
+                assert(player.expiryDate === null, 'Expiry date should be null for unknown plan');
+                assert(player.membershipPlan === 'CustomPlan', 'Plan name should be preserved');
+                
+                return `✓ Unknown plan "${player.membershipPlan}" correctly flagged, expiry: ${formatDate(player.expiryDate)}`;
+            }
+        });
+
+        // Test 4: Multiple players with different plans
+        tests.push({
+            name: 'Test 4: Multiple players with different plans',
+            run: () => {
+                const plans = [
+                    { name: 'Monthly', durationDays: 30 },
+                    { name: 'Quarterly', durationDays: 90 },
+                    { name: 'Annual', durationDays: 365 }
+                ];
+                const payments = [
+                    {
+                        payerName: 'John Doe',
+                        playerName: 'Jane Doe',
+                        paymentAmount: 100,
+                        paymentDate: new Date('2024-01-01'),
+                        membershipPlan: 'Monthly',
+                        isComplete: true
+                    },
+                    {
+                        payerName: 'Bob Smith',
+                        playerName: 'Alice Smith',
+                        paymentAmount: 250,
+                        paymentDate: new Date('2024-01-01'),
+                        membershipPlan: 'Quarterly',
+                        isComplete: true
+                    },
+                    {
+                        payerName: 'Tom Brown',
+                        playerName: 'Tim Brown',
+                        paymentAmount: 900,
+                        paymentDate: new Date('2024-01-01'),
+                        membershipPlan: 'Annual',
+                        isComplete: true
+                    }
+                ];
+                
+                const playerMap = groupPaymentsByPlayer(payments);
+                const players = [];
+                for (const [key, pmts] of playerMap.entries()) {
+                    players.push(createPlayerRecord(key, pmts, plans));
+                }
+                
+                assert(players.length === 3, 'Should have 3 players');
+                
+                const jane = players.find(p => p.playerName === 'Jane Doe');
+                const alice = players.find(p => p.playerName === 'Alice Smith');
+                const tim = players.find(p => p.playerName === 'Tim Brown');
+                
+                assert(formatDate(jane.expiryDate) === '2024-01-31', 'Jane expiry incorrect');
+                assert(formatDate(alice.expiryDate) === '2024-03-31', 'Alice expiry incorrect');
+                assert(formatDate(tim.expiryDate) === '2024-12-31', 'Tim expiry incorrect');
+                
+                return `✓ All 3 players have correct expiry dates based on their plans`;
+            }
+        });
+
+        // Test 5: Player with mixed known and unknown plans
+        tests.push({
+            name: 'Test 5: Player switches from known to unknown plan',
+            run: () => {
+                const plans = [{ name: 'Monthly', durationDays: 30 }];
+                const payments = [
+                    {
+                        payerName: 'John Doe',
+                        playerName: 'Jane Doe',
+                        paymentAmount: 100,
+                        paymentDate: new Date('2024-01-01'),
+                        membershipPlan: 'Monthly',
+                        isComplete: true
+                    },
+                    {
+                        payerName: 'John Doe',
+                        playerName: 'Jane Doe',
+                        paymentAmount: 150,
+                        paymentDate: new Date('2024-02-01'),
+                        membershipPlan: 'Premium',
+                        isComplete: true
+                    }
+                ];
+                
+                const playerMap = groupPaymentsByPlayer(payments);
+                const player = createPlayerRecord('Jane Doe', playerMap.get('Jane Doe'), plans);
+                
+                assert(player !== null, 'Player should be created');
+                assert(player.hasUnknownPlan === true, 'Most recent plan is unknown, should be flagged');
+                assert(player.membershipPlan === 'Premium', 'Should show most recent plan');
+                assert(player.expiryDate === null, 'Expiry should be null for unknown plan');
+                
+                return `✓ Player with unknown plan correctly flagged (plan: ${player.membershipPlan})`;
+            }
+        });
+
+        // Test 6: Edge case - payment on leap year day
+        tests.push({
+            name: 'Test 6: Payment on leap year day (Feb 29)',
+            run: () => {
+                const plans = [{ name: 'Monthly', durationDays: 30 }];
+                const payments = [
+                    {
+                        payerName: 'John Doe',
+                        playerName: 'Jane Doe',
+                        paymentAmount: 100,
+                        paymentDate: new Date('2024-02-29'),
+                        membershipPlan: 'Monthly',
+                        isComplete: true
+                    }
+                ];
+                
+                const playerMap = groupPaymentsByPlayer(payments);
+                const player = createPlayerRecord('Jane Doe', playerMap.get('Jane Doe'), plans);
+                
+                assert(player !== null, 'Player should be created');
+                assert(player.expiryDate !== null, 'Expiry date should be calculated');
+                assert(formatDate(player.expiryDate) === '2024-03-30', 
+                    `Expected 2024-03-30, got ${formatDate(player.expiryDate)}`);
+                
+                return `✓ Leap year payment handled correctly: ${formatDate(player.expiryDate)}`;
+            }
+        });
+
+        // Run all tests
+        const resultsDiv = document.getElementById('testResults');
+        let passCount = 0;
+        let failCount = 0;
+
+        tests.forEach(test => {
+            const section = document.createElement('div');
+            section.className = 'test-section';
+            
+            const title = document.createElement('h2');
+            title.textContent = test.name;
+            section.appendChild(title);
+            
+            try {
+                const result = test.run();
+                section.classList.add('test-pass');
+                const resultText = document.createElement('p');
+                resultText.textContent = result;
+                section.appendChild(resultText);
+                passCount++;
+            } catch (error) {
+                section.classList.add('test-fail');
+                const errorText = document.createElement('p');
+                errorText.textContent = `✗ ${error.message}`;
+                section.appendChild(errorText);
+                
+                const stackTrace = document.createElement('pre');
+                stackTrace.textContent = error.stack;
+                section.appendChild(stackTrace);
+                failCount++;
+            }
+            
+            resultsDiv.appendChild(section);
+        });
+
+        // Summary
+        const summary = document.createElement('div');
+        summary.className = 'test-section';
+        summary.style.backgroundColor = failCount === 0 ? '#d4edda' : '#fff3cd';
+        summary.innerHTML = `
+            <h2>Test Summary</h2>
+            <p><strong>Total:</strong> ${tests.length} tests</p>
+            <p><strong>Passed:</strong> ${passCount}</p>
+            <p><strong>Failed:</strong> ${failCount}</p>
+            <p><strong>Requirements Validated:</strong> 4.1 (expiry calculation), 4.2 (most recent payment), 4.5 (plan duration), 11.4 (plan matching), 11.5 (unknown plan flagging)</p>
+        `;
+        resultsDiv.insertBefore(summary, resultsDiv.firstChild);
+    </script>
+</body>
+</html>

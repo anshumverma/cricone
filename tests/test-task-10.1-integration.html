@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 10.1 Integration Test</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@3.0.0/index.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Task 10.1 Integration Test</h1>
+            <p class="subtitle">Testing Player List Table Rendering</p>
+        </header>
+
+        <main>
+            <section class="test-section">
+                <h2>Test Results</h2>
+                <div id="testResults"></div>
+            </section>
+
+            <section class="table-section">
+                <h2>Rendered Table</h2>
+                <div class="table-container">
+                    <table id="membersTable">
+                        <thead>
+                            <tr>
+                                <th>Player Name</th>
+                                <th>Guardian Name</th>
+                                <th>Membership Plan</th>
+                                <th>Last Payment Date</th>
+                                <th>Last Payment Amount</th>
+                                <th>Expiry Date</th>
+                                <th>Status</th>
+                                <th>Days Until Expiry</th>
+                            </tr>
+                        </thead>
+                        <tbody id="membersTableBody">
+                            <tr class="empty-state">
+                                <td colspan="8">Loading test data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Integration test for Task 10.1
+        function runIntegrationTest() {
+            const results = [];
+            
+            // Create mock player data
+            const mockPlayers = [
+                {
+                    playerName: "Test Player 1",
+                    guardianName: "Test Guardian 1",
+                    membershipPlan: "Monthly",
+                    lastPaymentDate: new Date('2024-01-15'),
+                    lastPaymentAmount: 100.00,
+                    expiryDate: new Date('2024-02-15'),
+                    status: 'active',
+                    daysUntilExpiry: 15,
+                    hasUnknownPlan: false,
+                    totalPayments: 1,
+                    totalAmountPaid: 100.00,
+                    paymentHistory: []
+                },
+                {
+                    playerName: "Test Player 2",
+                    guardianName: "Test Guardian 2",
+                    membershipPlan: "Quarterly",
+                    lastPaymentDate: new Date('2024-01-10'),
+                    lastPaymentAmount: 250.00,
+                    expiryDate: new Date('2024-01-25'),
+                    status: 'expiring_soon',
+                    daysUntilExpiry: 5,
+                    hasUnknownPlan: false,
+                    totalPayments: 1,
+                    totalAmountPaid: 250.00,
+                    paymentHistory: []
+                },
+                {
+                    playerName: "Test Player 3",
+                    guardianName: "Test Guardian 3",
+                    membershipPlan: "Annual",
+                    lastPaymentDate: new Date('2023-12-01'),
+                    lastPaymentAmount: 1000.00,
+                    expiryDate: new Date('2024-01-05'),
+                    status: 'lapsed',
+                    daysUntilExpiry: -10,
+                    hasUnknownPlan: false,
+                    totalPayments: 1,
+                    totalAmountPaid: 1000.00,
+                    paymentHistory: []
+                }
+            ];
+
+            // Store mock players in app state
+            storePlayers(mockPlayers);
+
+            // Test 1: Verify renderTable function exists
+            try {
+                if (typeof renderTable === 'function') {
+                    results.push({ test: 'renderTable function exists', pass: true });
+                } else {
+                    results.push({ test: 'renderTable function exists', pass: false, error: 'Function not found' });
+                }
+            } catch (e) {
+                results.push({ test: 'renderTable function exists', pass: false, error: e.message });
+            }
+
+            // Test 2: Call renderTable and verify it renders
+            try {
+                renderTable();
+                const tbody = document.getElementById('membersTableBody');
+                const rows = tbody.querySelectorAll('tr:not(.empty-state)');
+                
+                if (rows.length === mockPlayers.length) {
+                    results.push({ test: 'Renders correct number of rows', pass: true });
+                } else {
+                    results.push({ test: 'Renders correct number of rows', pass: false, error: `Expected ${mockPlayers.length}, got ${rows.length}` });
+                }
+            } catch (e) {
+                results.push({ test: 'Renders correct number of rows', pass: false, error: e.message });
+            }
+
+            // Test 3: Verify all required columns are displayed
+            try {
+                const tbody = document.getElementById('membersTableBody');
+                const firstRow = tbody.querySelector('tr:not(.empty-state)');
+                const cells = firstRow.querySelectorAll('td');
+                
+                if (cells.length === 8) {
+                    results.push({ test: 'Displays all 8 required columns', pass: true });
+                } else {
+                    results.push({ test: 'Displays all 8 required columns', pass: false, error: `Expected 8 columns, got ${cells.length}` });
+                }
+            } catch (e) {
+                results.push({ test: 'Displays all 8 required columns', pass: false, error: e.message });
+            }
+
+            // Test 4: Verify status badges are applied
+            try {
+                const tbody = document.getElementById('membersTableBody');
+                const statusBadges = tbody.querySelectorAll('.status-badge');
+                
+                if (statusBadges.length === mockPlayers.length) {
+                    results.push({ test: 'Applies status badges', pass: true });
+                } else {
+                    results.push({ test: 'Applies status badges', pass: false, error: `Expected ${mockPlayers.length} badges, got ${statusBadges.length}` });
+                }
+            } catch (e) {
+                results.push({ test: 'Applies status badges', pass: false, error: e.message });
+            }
+
+            // Test 5: Verify different status styles
+            try {
+                const tbody = document.getElementById('membersTableBody');
+                const activeStatus = tbody.querySelector('.status-active');
+                const expiringStatus = tbody.querySelector('.status-expiring_soon');
+                const lapsedStatus = tbody.querySelector('.status-lapsed');
+                
+                if (activeStatus && expiringStatus && lapsedStatus) {
+                    results.push({ test: 'Applies different status styles', pass: true });
+                } else {
+                    results.push({ test: 'Applies different status styles', pass: false, error: 'Not all status styles found' });
+                }
+            } catch (e) {
+                results.push({ test: 'Applies different status styles', pass: false, error: e.message });
+            }
+
+            // Test 6: Verify data is correctly displayed
+            try {
+                const tbody = document.getElementById('membersTableBody');
+                const firstRow = tbody.querySelector('tr:not(.empty-state)');
+                const cells = firstRow.querySelectorAll('td');
+                
+                const playerNameMatch = cells[0].textContent === mockPlayers[0].playerName;
+                const guardianNameMatch = cells[1].textContent === mockPlayers[0].guardianName;
+                const planMatch = cells[2].textContent.includes(mockPlayers[0].membershipPlan);
+                
+                if (playerNameMatch && guardianNameMatch && planMatch) {
+                    results.push({ test: 'Displays correct player data', pass: true });
+                } else {
+                    results.push({ test: 'Displays correct player data', pass: false, error: 'Data mismatch' });
+                }
+            } catch (e) {
+                results.push({ test: 'Displays correct player data', pass: false, error: e.message });
+            }
+
+            // Test 7: Verify empty state handling
+            try {
+                storePlayers([]);
+                renderTable();
+                const tbody = document.getElementById('membersTableBody');
+                const emptyState = tbody.querySelector('.empty-state');
+                
+                if (emptyState) {
+                    results.push({ test: 'Handles empty player list', pass: true });
+                } else {
+                    results.push({ test: 'Handles empty player list', pass: false, error: 'Empty state not shown' });
+                }
+                
+                // Restore mock players
+                storePlayers(mockPlayers);
+                renderTable();
+            } catch (e) {
+                results.push({ test: 'Handles empty player list', pass: false, error: e.message });
+            }
+
+            // Display results
+            displayResults(results);
+        }
+
+        function displayResults(results) {
+            const container = document.getElementById('testResults');
+            const passCount = results.filter(r => r.pass).length;
+            const totalCount = results.length;
+            
+            let html = `
+                <div class="status-message ${passCount === totalCount ? 'success' : 'error'}">
+                    <strong>Test Summary: ${passCount}/${totalCount} tests passed</strong>
+                </div>
+                <ul style="list-style: none; padding: 0; margin-top: 20px;">
+            `;
+            
+            results.forEach(result => {
+                html += `
+                    <li style="padding: 10px; margin: 5px 0; background: ${result.pass ? '#d4edda' : '#f8d7da'}; border-radius: 5px;">
+                        <strong>${result.pass ? '✓' : '✗'} ${result.test}</strong>
+                        ${result.error ? `<br><span style="color: #721c24;">Error: ${result.error}</span>` : ''}
+                    </li>
+                `;
+            });
+            
+            html += '</ul>';
+            container.innerHTML = html;
+        }
+
+        // Run tests when page loads
+        window.addEventListener('load', () => {
+            setTimeout(runIntegrationTest, 500);
+        });
+    </script>
+</body>
+</html>

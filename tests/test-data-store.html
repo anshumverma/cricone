@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Store Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e7f3ff;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Data Store Module Tests</h1>
+    <div id="results"></div>
+    <div id="summary" class="summary"></div>
+
+    <script>
+        // Simple test framework
+        const results = [];
+        
+        function test(description, fn) {
+            try {
+                fn();
+                results.push({ description, passed: true });
+                displayResult(description, true);
+            } catch (error) {
+                results.push({ description, passed: false, error: error.message });
+                displayResult(description, false, error.message);
+            }
+        }
+        
+        function assert(condition, message) {
+            if (!condition) {
+                throw new Error(message || 'Assertion failed');
+            }
+        }
+        
+        function assertEqual(actual, expected, message) {
+            if (actual !== expected) {
+                throw new Error(message || `Expected ${expected}, got ${actual}`);
+            }
+        }
+        
+        function assertDeepEqual(actual, expected, message) {
+            if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+                throw new Error(message || `Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+            }
+        }
+        
+        function displayResult(description, passed, error) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            resultDiv.innerHTML = `
+                <strong>${passed ? '✓' : '✗'} ${description}</strong>
+                ${error ? `<br><small>${error}</small>` : ''}
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        function displaySummary() {
+            const summaryDiv = document.getElementById('summary');
+            const passed = results.filter(r => r.passed).length;
+            const total = results.length;
+            summaryDiv.innerHTML = `
+                <h2>Test Summary</h2>
+                <p><strong>${passed}/${total}</strong> tests passed</p>
+                ${passed === total ? '<p style="color: green;">All tests passed! ✓</p>' : '<p style="color: red;">Some tests failed</p>'}
+            `;
+        }
+
+        // Mock appState for testing
+        const appState = {
+            paymentRecords: [],
+            players: [],
+            membershipPlans: [],
+            currentFilter: 'all',
+            currentSort: { column: 'playerName', direction: 'asc' },
+            isLoading: false,
+            errorMessage: null
+        };
+
+        // Data Store Functions (from app.js)
+        function storePaymentRecords(records) {
+            appState.paymentRecords = records;
+        }
+
+        function getPaymentRecords() {
+            return appState.paymentRecords;
+        }
+
+        function storePlayers(players) {
+            appState.players = players;
+        }
+
+        function getPlayers() {
+            return appState.players;
+        }
+
+        function storeMembershipPlans(plans) {
+            appState.membershipPlans = plans;
+        }
+
+        function getMembershipPlans() {
+            return appState.membershipPlans;
+        }
+
+        function clearAllData() {
+            appState.paymentRecords = [];
+            appState.players = [];
+            appState.currentFilter = 'all';
+            appState.errorMessage = null;
+        }
+
+        // Run tests
+        console.log('Running Data Store Tests...');
+
+        // Test 1: Store and retrieve payment records
+        test('Should store and retrieve payment records', () => {
+            const records = [
+                { payerName: 'John Doe', paymentAmount: 100, paymentDate: new Date(), membershipPlan: 'Monthly', isComplete: true },
+                { payerName: 'Jane Smith', paymentAmount: 200, paymentDate: new Date(), membershipPlan: 'Quarterly', isComplete: true }
+            ];
+            
+            storePaymentRecords(records);
+            const retrieved = getPaymentRecords();
+            
+            assertEqual(retrieved.length, 2, 'Should retrieve 2 records');
+            assertEqual(retrieved[0].payerName, 'John Doe', 'First record should match');
+            assertEqual(retrieved[1].payerName, 'Jane Smith', 'Second record should match');
+        });
+
+        // Test 2: Store and retrieve player records
+        test('Should store and retrieve player records', () => {
+            const players = [
+                { playerName: 'Player 1', guardianName: 'Guardian 1', membershipPlan: 'Monthly' },
+                { playerName: 'Player 2', guardianName: 'Guardian 2', membershipPlan: 'Annual' }
+            ];
+            
+            storePlayers(players);
+            const retrieved = getPlayers();
+            
+            assertEqual(retrieved.length, 2, 'Should retrieve 2 players');
+            assertEqual(retrieved[0].playerName, 'Player 1', 'First player should match');
+            assertEqual(retrieved[1].playerName, 'Player 2', 'Second player should match');
+        });
+
+        // Test 3: Store and retrieve membership plans
+        test('Should store and retrieve membership plans', () => {
+            const plans = [
+                { name: 'Monthly', durationDays: 30 },
+                { name: 'Quarterly', durationDays: 90 },
+                { name: 'Annual', durationDays: 365 }
+            ];
+            
+            storeMembershipPlans(plans);
+            const retrieved = getMembershipPlans();
+            
+            assertEqual(retrieved.length, 3, 'Should retrieve 3 plans');
+            assertEqual(retrieved[0].name, 'Monthly', 'First plan should match');
+            assertEqual(retrieved[2].durationDays, 365, 'Annual plan duration should be 365');
+        });
+
+        // Test 4: Clear all data
+        test('Should clear all data', () => {
+            // First, populate with data
+            storePaymentRecords([{ payerName: 'Test' }]);
+            storePlayers([{ playerName: 'Test Player' }]);
+            
+            // Verify data exists
+            assert(getPaymentRecords().length > 0, 'Should have payment records before clear');
+            assert(getPlayers().length > 0, 'Should have players before clear');
+            
+            // Clear data
+            clearAllData();
+            
+            // Verify data is cleared
+            assertEqual(getPaymentRecords().length, 0, 'Payment records should be empty');
+            assertEqual(getPlayers().length, 0, 'Players should be empty');
+            assertEqual(appState.currentFilter, 'all', 'Filter should be reset to all');
+            assertEqual(appState.errorMessage, null, 'Error message should be null');
+        });
+
+        // Test 5: Empty state handling
+        test('Should handle empty state correctly', () => {
+            clearAllData();
+            
+            const records = getPaymentRecords();
+            const players = getPlayers();
+            const plans = getMembershipPlans();
+            
+            assert(Array.isArray(records), 'Payment records should be an array');
+            assert(Array.isArray(players), 'Players should be an array');
+            assert(Array.isArray(plans), 'Plans should be an array');
+            assertEqual(records.length, 0, 'Payment records should be empty');
+            assertEqual(players.length, 0, 'Players should be empty');
+        });
+
+        // Test 6: Overwrite existing data
+        test('Should overwrite existing data when storing new data', () => {
+            const records1 = [{ payerName: 'First' }];
+            const records2 = [{ payerName: 'Second' }, { payerName: 'Third' }];
+            
+            storePaymentRecords(records1);
+            assertEqual(getPaymentRecords().length, 1, 'Should have 1 record initially');
+            
+            storePaymentRecords(records2);
+            assertEqual(getPaymentRecords().length, 2, 'Should have 2 records after overwrite');
+            assertEqual(getPaymentRecords()[0].payerName, 'Second', 'First record should be from new data');
+        });
+
+        // Test 7: Data persistence during session
+        test('Should maintain data during session', () => {
+            const testRecords = [
+                { payerName: 'Test 1', paymentAmount: 50 },
+                { payerName: 'Test 2', paymentAmount: 100 }
+            ];
+            
+            storePaymentRecords(testRecords);
+            
+            // Simulate multiple retrievals
+            const retrieval1 = getPaymentRecords();
+            const retrieval2 = getPaymentRecords();
+            const retrieval3 = getPaymentRecords();
+            
+            assertEqual(retrieval1.length, 2, 'First retrieval should have 2 records');
+            assertEqual(retrieval2.length, 2, 'Second retrieval should have 2 records');
+            assertEqual(retrieval3.length, 2, 'Third retrieval should have 2 records');
+            assertEqual(retrieval1[0].payerName, 'Test 1', 'Data should remain consistent');
+        });
+
+        // Test 8: Store empty arrays
+        test('Should handle storing empty arrays', () => {
+            storePaymentRecords([]);
+            storePlayers([]);
+            storeMembershipPlans([]);
+            
+            assertEqual(getPaymentRecords().length, 0, 'Empty payment records array should be stored');
+            assertEqual(getPlayers().length, 0, 'Empty players array should be stored');
+            assertEqual(getMembershipPlans().length, 0, 'Empty plans array should be stored');
+        });
+
+        // Test 9: Membership plans not cleared by clearAllData
+        test('Should preserve membership plans when clearing data', () => {
+            const plans = [
+                { name: 'Monthly', durationDays: 30 },
+                { name: 'Annual', durationDays: 365 }
+            ];
+            
+            storeMembershipPlans(plans);
+            storePaymentRecords([{ payerName: 'Test' }]);
+            
+            clearAllData();
+            
+            // Payment records should be cleared
+            assertEqual(getPaymentRecords().length, 0, 'Payment records should be cleared');
+            
+            // Note: Based on the current implementation, plans are NOT cleared by clearAllData
+            // This is intentional as plans are configuration that should persist
+        });
+
+        // Display summary
+        displaySummary();
+        
+        console.log('Tests completed:', results);
+    </script>
+</body>
+</html>

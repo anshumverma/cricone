@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duplicate Detection Integration Test</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        .test-controls {
+            background: #f0f0f0;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .test-btn {
+            margin: 5px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .test-btn:hover {
+            background: #5568d3;
+        }
+        .test-log {
+            background: #fff;
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .log-success { color: #28a745; }
+        .log-error { color: #dc3545; }
+        .log-info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Duplicate Detection Integration Test</h1>
+            <p class="subtitle">Test duplicate detection with simulated Excel files</p>
+        </header>
+
+        <main>
+            <section class="test-controls">
+                <h2>Test Scenarios</h2>
+                <button class="test-btn" onclick="testNoDuplicates()">Test 1: No Duplicates</button>
+                <button class="test-btn" onclick="testWithDuplicates()">Test 2: With Duplicates</button>
+                <button class="test-btn" onclick="testMultipleDuplicateGroups()">Test 3: Multiple Groups</button>
+                <button class="test-btn" onclick="testCaseInsensitive()">Test 4: Case Insensitive</button>
+                <button class="test-btn" onclick="clearLog()">Clear Log</button>
+            </section>
+
+            <section>
+                <h2>Test Log</h2>
+                <div id="testLog" class="test-log"></div>
+            </section>
+
+            <section class="upload-section" style="display: none;">
+                <input type="file" id="fileInput" accept=".xlsx,.xls" />
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Test logging
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('testLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('testLog').innerHTML = '';
+        }
+
+        // Create test Excel file
+        function createTestExcelFile(data, filename) {
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Payments");
+            
+            // Generate binary string
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+            
+            // Convert to Blob
+            const buf = new ArrayBuffer(wbout.length);
+            const view = new Uint8Array(buf);
+            for (let i = 0; i < wbout.length; i++) {
+                view[i] = wbout.charCodeAt(i) & 0xFF;
+            }
+            
+            return new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        }
+
+        // Simulate file upload
+        function simulateFileUpload(blob, filename) {
+            const file = new File([blob], filename, { type: blob.type });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            
+            const fileInput = document.getElementById('fileInput');
+            fileInput.files = dataTransfer.files;
+            
+            // Trigger change event
+            const event = new Event('change', { bubbles: true });
+            fileInput.dispatchEvent(event);
+        }
+
+        // Test 1: No duplicates
+        function testNoDuplicates() {
+            log('Starting Test 1: No Duplicates', 'info');
+            
+            const data = [
+                { "Payer Name": "John Doe", "Date": "2024-01-01", "Amount": 100, "Campaign": "Monthly" },
+                { "Payer Name": "Jane Smith", "Date": "2024-01-02", "Amount": 150, "Campaign": "Quarterly" },
+                { "Payer Name": "Bob Johnson", "Date": "2024-01-03", "Amount": 200, "Campaign": "Annual" }
+            ];
+            
+            const blob = createTestExcelFile(data, 'test-no-duplicates.xlsx');
+            simulateFileUpload(blob, 'test-no-duplicates.xlsx');
+            
+            setTimeout(() => {
+                const modal = document.getElementById('duplicateModal');
+                if (modal) {
+                    log('✗ FAIL: Duplicate modal shown when no duplicates exist', 'error');
+                } else {
+                    log('✓ PASS: No duplicate modal shown', 'success');
+                    log(`Records processed: ${appState.paymentRecords.length}`, 'info');
+                }
+            }, 500);
+        }
+
+        // Test 2: With duplicates
+        function testWithDuplicates() {
+            log('Starting Test 2: With Duplicates', 'info');
+            
+            const data = [
+                { "Payer Name": "John Doe", "Date": "2024-01-01", "Amount": 100, "Campaign": "Monthly" },
+                { "Payer Name": "John Doe", "Date": "2024-01-01", "Amount": 100, "Campaign": "Monthly" },
+                { "Payer Name": "Jane Smith", "Date": "2024-01-02", "Amount": 150, "Campaign": "Quarterly" }
+            ];
+            
+            const blob = createTestExcelFile(data, 'test-with-duplicates.xlsx');
+            simulateFileUpload(blob, 'test-with-duplicates.xlsx');
+            
+            setTimeout(() => {
+                const modal = document.getElementById('duplicateModal');
+                if (modal) {
+                    log('✓ PASS: Duplicate modal shown', 'success');
+                    log('Modal content detected - user can choose to include/exclude', 'info');
+                    
+                    // Test exclude button
+                    const excludeBtn = document.getElementById('excludeDuplicatesBtn');
+                    if (excludeBtn) {
+                        log('Testing exclude duplicates...', 'info');
+                        excludeBtn.click();
+                        
+                        setTimeout(() => {
+                            log(`Records after exclusion: ${appState.paymentRecords.length}`, 'info');
+                            if (appState.paymentRecords.length === 2) {
+                                log('✓ PASS: Duplicates excluded correctly', 'success');
+                            } else {
+                                log('✗ FAIL: Expected 2 records, got ' + appState.paymentRecords.length, 'error');
+                            }
+                        }, 200);
+                    }
+                } else {
+                    log('✗ FAIL: Duplicate modal not shown when duplicates exist', 'error');
+                }
+            }, 500);
+        }
+
+        // Test 3: Multiple duplicate groups
+        function testMultipleDuplicateGroups() {
+            log('Starting Test 3: Multiple Duplicate Groups', 'info');
+            
+            const data = [
+                { "Payer Name": "John Doe", "Date": "2024-01-01", "Amount": 100, "Campaign": "Monthly" },
+                { "Payer Name": "John Doe", "Date": "2024-01-01", "Amount": 100, "Campaign": "Monthly" },
+                { "Payer Name": "Jane Smith", "Date": "2024-01-02", "Amount": 150, "Campaign": "Quarterly" },
+                { "Payer Name": "Jane Smith", "Date": "2024-01-02", "Amount": 150, "Campaign": "Quarterly" },
+                { "Payer Name": "Bob Johnson", "Date": "2024-01-03", "Amount": 200, "Campaign": "Annual" }
+            ];
+            
+            const blob = createTestExcelFile(data, 'test-multiple-groups.xlsx');
+            simulateFileUpload(blob, 'test-multiple-groups.xlsx');
+            
+            setTimeout(() => {
+                const modal = document.getElementById('duplicateModal');
+                if (modal) {
+                    log('✓ PASS: Duplicate modal shown', 'success');
+                    
+                    const groups = document.querySelectorAll('.duplicate-group');
+                    log(`Duplicate groups found: ${groups.length}`, 'info');
+                    
+                    if (groups.length === 2) {
+                        log('✓ PASS: Correct number of duplicate groups', 'success');
+                    } else {
+                        log('✗ FAIL: Expected 2 groups, got ' + groups.length, 'error');
+                    }
+                    
+                    // Close modal
+                    const cancelBtn = document.getElementById('cancelUploadBtn');
+                    if (cancelBtn) cancelBtn.click();
+                } else {
+                    log('✗ FAIL: Duplicate modal not shown', 'error');
+                }
+            }, 500);
+        }
+
+        // Test 4: Case insensitive
+        function testCaseInsensitive() {
+            log('Starting Test 4: Case Insensitive Detection', 'info');
+            
+            const data = [
+                { "Payer Name": "John Doe", "Date": "2024-01-01", "Amount": 100, "Campaign": "Monthly" },
+                { "Payer Name": "john doe", "Date": "2024-01-01", "Amount": 100, "Campaign": "Monthly" },
+                { "Payer Name": "JOHN DOE", "Date": "2024-01-01", "Amount": 100, "Campaign": "Monthly" }
+            ];
+            
+            const blob = createTestExcelFile(data, 'test-case-insensitive.xlsx');
+            simulateFileUpload(blob, 'test-case-insensitive.xlsx');
+            
+            setTimeout(() => {
+                const modal = document.getElementById('duplicateModal');
+                if (modal) {
+                    log('✓ PASS: Case insensitive duplicates detected', 'success');
+                    
+                    const summary = document.querySelector('.duplicate-summary');
+                    if (summary && summary.textContent.includes('2')) {
+                        log('✓ PASS: Correct duplicate count (2 duplicates)', 'success');
+                    }
+                    
+                    // Close modal
+                    const cancelBtn = document.getElementById('cancelUploadBtn');
+                    if (cancelBtn) cancelBtn.click();
+                } else {
+                    log('✗ FAIL: Case insensitive duplicates not detected', 'error');
+                }
+            }, 500);
+        }
+
+        // Initialize
+        log('Integration test page loaded', 'info');
+        log('Click a test button to run a scenario', 'info');
+    </script>
+</body>
+</html>

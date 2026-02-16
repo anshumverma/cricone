@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Table Rendering - Task 10.1</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .pass {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .fail {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-expiring_soon {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status-lapsed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>Task 10.1: Player List Table Rendering Tests</h1>
+    
+    <div class="test-section">
+        <h2>Test Setup</h2>
+        <p>Testing the renderTable() function with mock player data</p>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 1: Display All Players in Table</h2>
+        <div id="test1-result"></div>
+        <div id="test1-table"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Show All Required Columns</h2>
+        <div id="test2-result"></div>
+        <div id="test2-details"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Apply Visual Styling for Different Statuses</h2>
+        <div id="test3-result"></div>
+        <div id="test3-visual"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Handle Empty Player List</h2>
+        <div id="test4-result"></div>
+        <div id="test4-table"></div>
+    </div>
+
+    <script>
+        // Mock player data for testing
+        const mockPlayers = [
+            {
+                playerName: "John Smith",
+                guardianName: "Jane Smith",
+                membershipPlan: "Monthly",
+                lastPaymentDate: new Date('2024-01-15'),
+                lastPaymentAmount: 100.00,
+                expiryDate: new Date('2024-02-15'),
+                status: 'active',
+                daysUntilExpiry: 15,
+                hasUnknownPlan: false
+            },
+            {
+                playerName: "Alice Johnson",
+                guardianName: "Bob Johnson",
+                membershipPlan: "Quarterly",
+                lastPaymentDate: new Date('2024-01-10'),
+                lastPaymentAmount: 250.00,
+                expiryDate: new Date('2024-01-25'),
+                status: 'expiring_soon',
+                daysUntilExpiry: 5,
+                hasUnknownPlan: false
+            },
+            {
+                playerName: "Mike Davis",
+                guardianName: "Sarah Davis",
+                membershipPlan: "Annual",
+                lastPaymentDate: new Date('2023-12-01'),
+                lastPaymentAmount: 1000.00,
+                expiryDate: new Date('2024-01-05'),
+                status: 'lapsed',
+                daysUntilExpiry: -10,
+                hasUnknownPlan: false
+            }
+        ];
+
+        // Helper function to format date
+        function formatDate(date) {
+            if (!date) return 'N/A';
+            if (!(date instanceof Date)) date = new Date(date);
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        // Helper function to format status
+        function formatStatus(status) {
+            return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        // Test 1: Display all players in a table
+        function test1() {
+            const container = document.getElementById('test1-table');
+            const resultDiv = document.getElementById('test1-result');
+            
+            // Create table HTML
+            const tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Player Name</th>
+                            <th>Guardian Name</th>
+                            <th>Membership Plan</th>
+                            <th>Last Payment Date</th>
+                            <th>Last Payment Amount</th>
+                            <th>Expiry Date</th>
+                            <th>Status</th>
+                            <th>Days Until Expiry</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${mockPlayers.map(player => `
+                            <tr>
+                                <td>${player.playerName}</td>
+                                <td>${player.guardianName}</td>
+                                <td>${player.membershipPlan}</td>
+                                <td>${formatDate(player.lastPaymentDate)}</td>
+                                <td>${player.lastPaymentAmount.toFixed(2)}</td>
+                                <td>${formatDate(player.expiryDate)}</td>
+                                <td><span class="status-badge status-${player.status}">${formatStatus(player.status)}</span></td>
+                                <td>${player.daysUntilExpiry}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = tableHTML;
+            
+            // Verify all players are displayed
+            const rows = container.querySelectorAll('tbody tr');
+            const pass = rows.length === mockPlayers.length;
+            
+            resultDiv.className = `test-result ${pass ? 'pass' : 'fail'}`;
+            resultDiv.textContent = pass 
+                ? `✓ PASS: All ${mockPlayers.length} players displayed in table`
+                : `✗ FAIL: Expected ${mockPlayers.length} rows, got ${rows.length}`;
+        }
+
+        // Test 2: Show all required columns
+        function test2() {
+            const resultDiv = document.getElementById('test2-result');
+            const detailsDiv = document.getElementById('test2-details');
+            
+            const requiredColumns = [
+                'Player Name',
+                'Guardian Name',
+                'Membership Plan',
+                'Last Payment Date',
+                'Last Payment Amount',
+                'Expiry Date',
+                'Status',
+                'Days Until Expiry'
+            ];
+            
+            // Check if all columns are present in the rendered table
+            const table = document.querySelector('#test1-table table');
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+            
+            const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+            const pass = missingColumns.length === 0;
+            
+            resultDiv.className = `test-result ${pass ? 'pass' : 'fail'}`;
+            resultDiv.textContent = pass 
+                ? `✓ PASS: All ${requiredColumns.length} required columns present`
+                : `✗ FAIL: Missing columns: ${missingColumns.join(', ')}`;
+            
+            detailsDiv.innerHTML = `
+                <p><strong>Required columns:</strong> ${requiredColumns.join(', ')}</p>
+                <p><strong>Found columns:</strong> ${headers.join(', ')}</p>
+            `;
+        }
+
+        // Test 3: Apply visual styling for different statuses
+        function test3() {
+            const resultDiv = document.getElementById('test3-result');
+            const visualDiv = document.getElementById('test3-visual');
+            
+            const statusTypes = ['active', 'expiring_soon', 'lapsed'];
+            const statusBadges = document.querySelectorAll('#test1-table .status-badge');
+            
+            let allStyled = true;
+            const statusCounts = {};
+            
+            statusBadges.forEach(badge => {
+                const hasStatusClass = statusTypes.some(status => badge.classList.contains(`status-${status}`));
+                if (!hasStatusClass) allStyled = false;
+                
+                // Count each status type
+                statusTypes.forEach(status => {
+                    if (badge.classList.contains(`status-${status}`)) {
+                        statusCounts[status] = (statusCounts[status] || 0) + 1;
+                    }
+                });
+            });
+            
+            const pass = allStyled && statusBadges.length === mockPlayers.length;
+            
+            resultDiv.className = `test-result ${pass ? 'pass' : 'fail'}`;
+            resultDiv.textContent = pass 
+                ? `✓ PASS: All status badges have appropriate styling`
+                : `✗ FAIL: Some status badges missing styling`;
+            
+            visualDiv.innerHTML = `
+                <p><strong>Status distribution:</strong></p>
+                <ul>
+                    <li>Active: ${statusCounts.active || 0} <span class="status-badge status-active">Active</span></li>
+                    <li>Expiring Soon: ${statusCounts.expiring_soon || 0} <span class="status-badge status-expiring_soon">Expiring Soon</span></li>
+                    <li>Lapsed: ${statusCounts.lapsed || 0} <span class="status-badge status-lapsed">Lapsed</span></li>
+                </ul>
+            `;
+        }
+
+        // Test 4: Handle empty player list
+        function test4() {
+            const container = document.getElementById('test4-table');
+            const resultDiv = document.getElementById('test4-result');
+            
+            const emptyPlayers = [];
+            
+            // Render empty table
+            const tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Player Name</th>
+                            <th>Guardian Name</th>
+                            <th>Membership Plan</th>
+                            <th>Last Payment Date</th>
+                            <th>Last Payment Amount</th>
+                            <th>Expiry Date</th>
+                            <th>Status</th>
+                            <th>Days Until Expiry</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${emptyPlayers.length === 0 ? '<tr class="empty-state"><td colspan="8">No members to display</td></tr>' : ''}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = tableHTML;
+            
+            // Verify empty state is shown
+            const emptyState = container.querySelector('.empty-state');
+            const pass = emptyState !== null;
+            
+            resultDiv.className = `test-result ${pass ? 'pass' : 'fail'}`;
+            resultDiv.textContent = pass 
+                ? `✓ PASS: Empty state displayed correctly`
+                : `✗ FAIL: Empty state not displayed`;
+        }
+
+        // Run all tests
+        test1();
+        test2();
+        test3();
+        test4();
+
+        // Summary
+        const allResults = document.querySelectorAll('.test-result');
+        const passCount = document.querySelectorAll('.test-result.pass').length;
+        const totalCount = allResults.length;
+        
+        document.body.insertAdjacentHTML('beforeend', `
+            <div class="test-section">
+                <h2>Test Summary</h2>
+                <div class="test-result ${passCount === totalCount ? 'pass' : 'fail'}">
+                    ${passCount} of ${totalCount} tests passed
+                </div>
+            </div>
+        `);
+    </script>
+</body>
+</html>

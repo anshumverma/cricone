@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Excel Parser</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Test Excel Parser</h1>
+    <input type="file" id="testFile" accept=".xlsx,.xls" />
+    <div id="output"></div>
+
+    <script>
+        // Copy the parser functions from app.js
+        function extractPaymentRecords(worksheet) {
+            const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: null });
+            
+            if (rawData.length === 0) {
+                return [];
+            }
+            
+            const columnMapping = detectColumnMapping(Object.keys(rawData[0]));
+            
+            const paymentRecords = rawData.map(row => {
+                const record = {
+                    payerName: extractField(row, columnMapping.payerName),
+                    playerName: extractField(row, columnMapping.playerName),
+                    paymentAmount: extractAmount(row, columnMapping.paymentAmount),
+                    paymentDate: extractDate(row, columnMapping.paymentDate),
+                    membershipPlan: extractField(row, columnMapping.membershipPlan),
+                    isComplete: false,
+                    rawData: row
+                };
+                
+                record.isComplete = validateRecord(record);
+                
+                return record;
+            });
+            
+            return paymentRecords.filter(record => 
+                record.payerName || record.paymentAmount || record.paymentDate || record.membershipPlan
+            );
+        }
+
+        function detectColumnMapping(headers) {
+            const mapping = {
+                payerName: null,
+                playerName: null,
+                paymentAmount: null,
+                paymentDate: null,
+                membershipPlan: null
+            };
+            
+            const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
+            
+            const payerPatterns = ['payer name', 'name', 'donor name', 'payer', 'donor', 'guardian name', 'guardian'];
+            mapping.payerName = findMatchingHeader(normalizedHeaders, headers, payerPatterns);
+            
+            const playerPatterns = ['player name', 'student name', 'beneficiary', 'player', 'student', 'child name'];
+            mapping.playerName = findMatchingHeader(normalizedHeaders, headers, playerPatterns);
+            
+            const amountPatterns = ['amount', 'payment amount', 'total', 'price', 'payment'];
+            mapping.paymentAmount = findMatchingHeader(normalizedHeaders, headers, amountPatterns);
+            
+            const datePatterns = ['date', 'payment date', 'transaction date', 'created at', 'timestamp'];
+            mapping.paymentDate = findMatchingHeader(normalizedHeaders, headers, datePatterns);
+            
+            const planPatterns = ['campaign', 'program', 'plan', 'item', 'membership plan', 'membership', 'product'];
+            mapping.membershipPlan = findMatchingHeader(normalizedHeaders, headers, planPatterns);
+            
+            return mapping;
+        }
+
+        function findMatchingHeader(normalizedHeaders, originalHeaders, patterns) {
+            for (const pattern of patterns) {
+                const index = normalizedHeaders.findIndex(h => h.includes(pattern) || pattern.includes(h));
+                if (index !== -1) {
+                    return originalHeaders[index];
+                }
+            }
+            return null;
+        }
+
+        function extractField(row, columnName) {
+            if (!columnName || !row[columnName]) {
+                return null;
+            }
+            
+            const value = row[columnName];
+            
+            if (typeof value === 'string') {
+                return value.trim() || null;
+            }
+            
+            return value ? String(value).trim() : null;
+        }
+
+        function extractAmount(row, columnName) {
+            if (!columnName || !row[columnName]) {
+                return 0;
+            }
+            
+            let value = row[columnName];
+            
+            if (typeof value === 'string') {
+                value = value.replace(/[$€£¥,\s]/g, '');
+            }
+            
+            const amount = parseFloat(value);
+            return isNaN(amount) ? 0 : amount;
+        }
+
+        function extractDate(row, columnName) {
+            if (!columnName || !row[columnName]) {
+                return null;
+            }
+            
+            const value = row[columnName];
+            
+            if (typeof value === 'number') {
+                const excelEpoch = new Date(1900, 0, 1);
+                const date = new Date(excelEpoch.getTime() + (value - 2) * 24 * 60 * 60 * 1000);
+                return isNaN(date.getTime()) ? null : date;
+            }
+            
+            if (typeof value === 'string') {
+                const date = new Date(value);
+                return isNaN(date.getTime()) ? null : date;
+            }
+            
+            if (value instanceof Date) {
+                return isNaN(value.getTime()) ? null : value;
+            }
+            
+            return null;
+        }
+
+        function validateRecord(record) {
+            return !!(
+                record.payerName &&
+                record.paymentAmount > 0 &&
+                record.paymentDate &&
+                record.membershipPlan
+            );
+        }
+
+        // Test file upload
+        document.getElementById('testFile').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // Show raw data first
+                const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: null });
+                console.log('Raw data:', rawData);
+                console.log('Headers:', Object.keys(rawData[0]));
+                
+                // Parse records
+                const records = extractPaymentRecords(worksheet);
+                console.log('Parsed records:', records);
+                
+                // Display results
+                const output = document.getElementById('output');
+                output.innerHTML = `
+                    <h2>Results</h2>
+                    <p>Total records: ${records.length}</p>
+                    <p>Complete records: ${records.filter(r => r.isComplete).length}</p>
+                    <p>Incomplete records: ${records.filter(r => !r.isComplete).length}</p>
+                    <h3>Sample Records:</h3>
+                    <pre>${JSON.stringify(records.slice(0, 3), null, 2)}</pre>
+                `;
+            };
+            
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>

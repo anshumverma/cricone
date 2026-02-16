@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Store Requirements Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e7f3ff;
+            border-radius: 4px;
+        }
+        .requirement {
+            font-size: 0.9em;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h1>Data Store Module - Requirements Validation</h1>
+    <p>Testing Task 4.1: Create data store module</p>
+    <p class="requirement">Requirements: 2.7 (Store parsed payment records), 3.1 (Maintain player records)</p>
+    
+    <div id="results"></div>
+    <div id="summary" class="summary"></div>
+
+    <script>
+        // Simple test framework
+        const results = [];
+        
+        function test(description, requirement, fn) {
+            try {
+                fn();
+                results.push({ description, requirement, passed: true });
+                displayResult(description, requirement, true);
+            } catch (error) {
+                results.push({ description, requirement, passed: false, error: error.message });
+                displayResult(description, requirement, false, error.message);
+            }
+        }
+        
+        function assert(condition, message) {
+            if (!condition) {
+                throw new Error(message || 'Assertion failed');
+            }
+        }
+        
+        function assertEqual(actual, expected, message) {
+            if (actual !== expected) {
+                throw new Error(message || `Expected ${expected}, got ${actual}`);
+            }
+        }
+        
+        function displayResult(description, requirement, passed, error) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            resultDiv.innerHTML = `
+                <strong>${passed ? '✓' : '✗'} ${description}</strong>
+                <div class="requirement">Validates: ${requirement}</div>
+                ${error ? `<br><small>${error}</small>` : ''}
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        function displaySummary() {
+            const summaryDiv = document.getElementById('summary');
+            const passed = results.filter(r => r.passed).length;
+            const total = results.length;
+            summaryDiv.innerHTML = `
+                <h2>Test Summary</h2>
+                <p><strong>${passed}/${total}</strong> tests passed</p>
+                ${passed === total ? '<p style="color: green;">✓ All requirements validated! Task 4.1 complete.</p>' : '<p style="color: red;">✗ Some tests failed - review implementation</p>'}
+            `;
+        }
+
+        // Mock appState for testing
+        const appState = {
+            paymentRecords: [],
+            players: [],
+            membershipPlans: [],
+            currentFilter: 'all',
+            currentSort: { column: 'playerName', direction: 'asc' },
+            isLoading: false,
+            errorMessage: null
+        };
+
+        // Data Store Functions (from app.js)
+        function storePaymentRecords(records) {
+            appState.paymentRecords = records;
+        }
+
+        function getPaymentRecords() {
+            return appState.paymentRecords;
+        }
+
+        function storePlayers(players) {
+            appState.players = players;
+        }
+
+        function getPlayers() {
+            return appState.players;
+        }
+
+        function storeMembershipPlans(plans) {
+            appState.membershipPlans = plans;
+        }
+
+        function getMembershipPlans() {
+            return appState.membershipPlans;
+        }
+
+        function clearAllData() {
+            appState.paymentRecords = [];
+            appState.players = [];
+            appState.currentFilter = 'all';
+            appState.errorMessage = null;
+        }
+
+        // Run tests
+        console.log('Running Data Store Requirements Tests...');
+
+        // Requirement 2.7: Store parsed payment records in memory
+        test(
+            'Should store payment records in memory for the current session',
+            'Requirement 2.7',
+            () => {
+                const paymentRecords = [
+                    {
+                        payerName: 'John Doe',
+                        playerName: 'Johnny Doe',
+                        paymentAmount: 100,
+                        paymentDate: new Date('2024-01-15'),
+                        membershipPlan: 'Monthly',
+                        isComplete: true,
+                        rawData: {}
+                    },
+                    {
+                        payerName: 'Jane Smith',
+                        playerName: 'Jenny Smith',
+                        paymentAmount: 300,
+                        paymentDate: new Date('2024-01-20'),
+                        membershipPlan: 'Quarterly',
+                        isComplete: true,
+                        rawData: {}
+                    }
+                ];
+                
+                storePaymentRecords(paymentRecords);
+                const retrieved = getPaymentRecords();
+                
+                assert(Array.isArray(retrieved), 'Retrieved data should be an array');
+                assertEqual(retrieved.length, 2, 'Should store and retrieve all payment records');
+                assertEqual(retrieved[0].payerName, 'John Doe', 'Should preserve payer name');
+                assertEqual(retrieved[0].paymentAmount, 100, 'Should preserve payment amount');
+                assertEqual(retrieved[1].membershipPlan, 'Quarterly', 'Should preserve membership plan');
+            }
+        );
+
+        test(
+            'Should retrieve payment records with all required fields intact',
+            'Requirement 2.7',
+            () => {
+                const record = {
+                    payerName: 'Test Guardian',
+                    playerName: 'Test Player',
+                    paymentAmount: 150.50,
+                    paymentDate: new Date('2024-02-01'),
+                    membershipPlan: 'Annual',
+                    isComplete: true,
+                    rawData: { originalColumn: 'value' }
+                };
+                
+                storePaymentRecords([record]);
+                const retrieved = getPaymentRecords()[0];
+                
+                assertEqual(retrieved.payerName, 'Test Guardian', 'Payer name should be preserved');
+                assertEqual(retrieved.playerName, 'Test Player', 'Player name should be preserved');
+                assertEqual(retrieved.paymentAmount, 150.50, 'Payment amount should be preserved');
+                assert(retrieved.paymentDate instanceof Date, 'Payment date should be a Date object');
+                assertEqual(retrieved.membershipPlan, 'Annual', 'Membership plan should be preserved');
+                assertEqual(retrieved.isComplete, true, 'isComplete flag should be preserved');
+                assert(retrieved.rawData, 'Raw data should be preserved');
+            }
+        );
+
+        test(
+            'Should handle incomplete payment records',
+            'Requirement 2.7',
+            () => {
+                const records = [
+                    {
+                        payerName: 'Complete Record',
+                        playerName: 'Player 1',
+                        paymentAmount: 100,
+                        paymentDate: new Date(),
+                        membershipPlan: 'Monthly',
+                        isComplete: true,
+                        rawData: {}
+                    },
+                    {
+                        payerName: 'Incomplete Record',
+                        playerName: null,
+                        paymentAmount: 0,
+                        paymentDate: null,
+                        membershipPlan: 'Unknown',
+                        isComplete: false,
+                        rawData: {}
+                    }
+                ];
+                
+                storePaymentRecords(records);
+                const retrieved = getPaymentRecords();
+                
+                assertEqual(retrieved.length, 2, 'Should store both complete and incomplete records');
+                assertEqual(retrieved[0].isComplete, true, 'Complete record should be flagged as complete');
+                assertEqual(retrieved[1].isComplete, false, 'Incomplete record should be flagged as incomplete');
+            }
+        );
+
+        // Requirement 3.1: Maintain player records in memory
+        test(
+            'Should maintain player records in memory during the session',
+            'Requirement 3.1',
+            () => {
+                const players = [
+                    {
+                        playerName: 'Player One',
+                        guardianName: 'Guardian One',
+                        membershipPlan: 'Monthly',
+                        lastPaymentDate: new Date('2024-01-15'),
+                        lastPaymentAmount: 100,
+                        expiryDate: new Date('2024-02-15'),
+                        status: 'active',
+                        daysUntilExpiry: 15,
+                        totalPayments: 3,
+                        totalAmountPaid: 300,
+                        paymentHistory: []
+                    },
+                    {
+                        playerName: 'Player Two',
+                        guardianName: 'Guardian Two',
+                        membershipPlan: 'Annual',
+                        lastPaymentDate: new Date('2024-01-01'),
+                        lastPaymentAmount: 1200,
+                        expiryDate: new Date('2025-01-01'),
+                        status: 'active',
+                        daysUntilExpiry: 200,
+                        totalPayments: 1,
+                        totalAmountPaid: 1200,
+                        paymentHistory: []
+                    }
+                ];
+                
+                storePlayers(players);
+                const retrieved = getPlayers();
+                
+                assert(Array.isArray(retrieved), 'Retrieved players should be an array');
+                assertEqual(retrieved.length, 2, 'Should store and retrieve all player records');
+                assertEqual(retrieved[0].playerName, 'Player One', 'Should preserve player name');
+                assertEqual(retrieved[1].membershipPlan, 'Annual', 'Should preserve membership plan');
+            }
+        );
+
+        test(
+            'Should maintain unique player records',
+            'Requirement 3.1',
+            () => {
+                const players = [
+                    { playerName: 'Unique Player 1', guardianName: 'Guardian A' },
+                    { playerName: 'Unique Player 2', guardianName: 'Guardian B' },
+                    { playerName: 'Unique Player 3', guardianName: 'Guardian C' }
+                ];
+                
+                storePlayers(players);
+                const retrieved = getPlayers();
+                
+                assertEqual(retrieved.length, 3, 'Should maintain all unique player records');
+                
+                // Verify each player is unique
+                const playerNames = retrieved.map(p => p.playerName);
+                const uniqueNames = new Set(playerNames);
+                assertEqual(uniqueNames.size, 3, 'All player names should be unique');
+            }
+        );
+
+        test(
+            'Should retrieve player records with all fields intact',
+            'Requirement 3.1',
+            () => {
+                const player = {
+                    playerName: 'Test Player',
+                    guardianName: 'Test Guardian',
+                    membershipPlan: 'Quarterly',
+                    lastPaymentDate: new Date('2024-01-15'),
+                    lastPaymentAmount: 270,
+                    expiryDate: new Date('2024-04-15'),
+                    status: 'active',
+                    daysUntilExpiry: 60,
+                    totalPayments: 2,
+                    totalAmountPaid: 540,
+                    paymentHistory: [
+                        { paymentDate: new Date('2023-10-15'), paymentAmount: 270 },
+                        { paymentDate: new Date('2024-01-15'), paymentAmount: 270 }
+                    ]
+                };
+                
+                storePlayers([player]);
+                const retrieved = getPlayers()[0];
+                
+                assertEqual(retrieved.playerName, 'Test Player', 'Player name should be preserved');
+                assertEqual(retrieved.guardianName, 'Test Guardian', 'Guardian name should be preserved');
+                assertEqual(retrieved.membershipPlan, 'Quarterly', 'Membership plan should be preserved');
+                assertEqual(retrieved.lastPaymentAmount, 270, 'Last payment amount should be preserved');
+                assertEqual(retrieved.status, 'active', 'Status should be preserved');
+                assertEqual(retrieved.totalPayments, 2, 'Total payments count should be preserved');
+                assertEqual(retrieved.totalAmountPaid, 540, 'Total amount paid should be preserved');
+                assert(Array.isArray(retrieved.paymentHistory), 'Payment history should be an array');
+                assertEqual(retrieved.paymentHistory.length, 2, 'Payment history should be preserved');
+            }
+        );
+
+        // Additional data store functionality tests
+        test(
+            'Should store and retrieve membership plans',
+            'Task 4.1',
+            () => {
+                const plans = [
+                    { name: 'Monthly', durationDays: 30 },
+                    { name: 'Quarterly', durationDays: 90 },
+                    { name: 'Annual', durationDays: 365 }
+                ];
+                
+                storeMembershipPlans(plans);
+                const retrieved = getMembershipPlans();
+                
+                assertEqual(retrieved.length, 3, 'Should store all membership plans');
+                assertEqual(retrieved[0].name, 'Monthly', 'Plan name should be preserved');
+                assertEqual(retrieved[2].durationDays, 365, 'Plan duration should be preserved');
+            }
+        );
+
+        test(
+            'Should clear payment and player data',
+            'Task 4.1',
+            () => {
+                // Populate data
+                storePaymentRecords([{ payerName: 'Test' }]);
+                storePlayers([{ playerName: 'Test Player' }]);
+                
+                // Verify data exists
+                assert(getPaymentRecords().length > 0, 'Should have payment records before clear');
+                assert(getPlayers().length > 0, 'Should have players before clear');
+                
+                // Clear data
+                clearAllData();
+                
+                // Verify data is cleared
+                assertEqual(getPaymentRecords().length, 0, 'Payment records should be cleared');
+                assertEqual(getPlayers().length, 0, 'Players should be cleared');
+                assertEqual(appState.currentFilter, 'all', 'Filter should be reset');
+                assertEqual(appState.errorMessage, null, 'Error message should be cleared');
+            }
+        );
+
+        test(
+            'Should handle empty data gracefully',
+            'Task 4.1',
+            () => {
+                clearAllData();
+                
+                const records = getPaymentRecords();
+                const players = getPlayers();
+                
+                assert(Array.isArray(records), 'Should return empty array for payment records');
+                assert(Array.isArray(players), 'Should return empty array for players');
+                assertEqual(records.length, 0, 'Payment records should be empty');
+                assertEqual(players.length, 0, 'Players should be empty');
+            }
+        );
+
+        test(
+            'Should allow data updates (overwrite)',
+            'Task 4.1',
+            () => {
+                const initialRecords = [{ payerName: 'Initial' }];
+                const updatedRecords = [{ payerName: 'Updated 1' }, { payerName: 'Updated 2' }];
+                
+                storePaymentRecords(initialRecords);
+                assertEqual(getPaymentRecords().length, 1, 'Should have 1 record initially');
+                
+                storePaymentRecords(updatedRecords);
+                const retrieved = getPaymentRecords();
+                
+                assertEqual(retrieved.length, 2, 'Should have 2 records after update');
+                assertEqual(retrieved[0].payerName, 'Updated 1', 'Data should be updated');
+            }
+        );
+
+        // Display summary
+        displaySummary();
+        
+        console.log('Tests completed:', results);
+    </script>
+</body>
+</html>

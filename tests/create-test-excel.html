@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Test Excel File</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            background-color: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #5568d3;
+        }
+        .info {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Create Test Excel File for Filtering</h1>
+    
+    <div class="info">
+        <h3>This will create a test Excel file with:</h3>
+        <ul>
+            <li>3 Active members (expiry > 7 days from today)</li>
+            <li>2 Expiring Soon members (expiry ≤ 7 days)</li>
+            <li>2 Lapsed members (expiry < today)</li>
+        </ul>
+        <p>The file will include all required columns: Payer Name, Player Name, Amount, Date, and Campaign (membership plan).</p>
+    </div>
+    
+    <button onclick="createTestExcel()">Download Test Excel File</button>
+    
+    <script>
+        function createTestExcel() {
+            const today = new Date();
+            
+            // Helper to create date string
+            const dateStr = (daysAgo) => {
+                const date = new Date(today);
+                date.setDate(date.getDate() - daysAgo);
+                return date.toISOString().split('T')[0];
+            };
+            
+            // Create test data with various statuses
+            const data = [
+                // Active members (paid recently, expiry > 7 days)
+                {
+                    'Payer Name': 'Robert Johnson',
+                    'Player Name': 'Alice Johnson',
+                    'Amount': 500,
+                    'Date': dateStr(185), // Annual plan, 180 days left
+                    'Campaign': 'Annual'
+                },
+                {
+                    'Payer Name': 'Mary Smith',
+                    'Player Name': 'Bob Smith',
+                    'Amount': 150,
+                    'Date': dateStr(45), // Quarterly plan, 45 days left
+                    'Campaign': 'Quarterly'
+                },
+                {
+                    'Payer Name': 'Sarah Brown',
+                    'Player Name': 'Charlie Brown',
+                    'Amount': 50,
+                    'Date': dateStr(15), // Monthly plan, 15 days left
+                    'Campaign': 'Monthly'
+                },
+                
+                // Expiring soon members (expiry within 7 days)
+                {
+                    'Payer Name': 'Jennifer Lee',
+                    'Player Name': 'David Lee',
+                    'Amount': 50,
+                    'Date': dateStr(25), // Monthly plan, 5 days left
+                    'Campaign': 'Monthly'
+                },
+                {
+                    'Payer Name': 'Michael Wilson',
+                    'Player Name': 'Emma Wilson',
+                    'Amount': 50,
+                    'Date': dateStr(28), // Monthly plan, 2 days left
+                    'Campaign': 'Monthly'
+                },
+                
+                // Lapsed members (expiry in the past)
+                {
+                    'Payer Name': 'Linda Davis',
+                    'Player Name': 'Frank Davis',
+                    'Amount': 150,
+                    'Date': dateStr(100), // Quarterly plan, expired 10 days ago
+                    'Campaign': 'Quarterly'
+                },
+                {
+                    'Payer Name': 'Carlos Martinez',
+                    'Player Name': 'Grace Martinez',
+                    'Amount': 50,
+                    'Date': dateStr(60), // Monthly plan, expired 30 days ago
+                    'Campaign': 'Monthly'
+                }
+            ];
+            
+            // Create worksheet
+            const ws = XLSX.utils.json_to_sheet(data);
+            
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Payments');
+            
+            // Generate and download file
+            XLSX.writeFile(wb, 'test-membership-data.xlsx');
+            
+            alert('Test Excel file created! You can now upload it to the Cricket Academy Membership Manager to test the filtering functionality.');
+        }
+    </script>
+</body>
+</html>

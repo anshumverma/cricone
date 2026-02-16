@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+.env.local
+
+# Build outputs (if any)
+dist/
+build/
+
+# Test coverage
+coverage/
+
+# Temporary files
+*.tmp
+.cache/
+
+# User data (Excel files uploaded by users)
+*.xlsx
+*.xls
+!Zeffy-export-CampaignPayments-1770856231447.xlsx
+
+# Kiro specific
+.kiro/
+
+# Optional: Exclude test files from production
+# tests/

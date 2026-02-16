@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Sorting Functionality</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            color: #667eea;
+            cursor: pointer;
+            user-select: none;
+        }
+        th:hover {
+            background-color: #e9ecef;
+        }
+        .sort-icon {
+            margin-left: 5px;
+            opacity: 0.5;
+        }
+        th.sorted-asc .sort-icon {
+            opacity: 1;
+        }
+        th.sorted-asc .sort-icon::after {
+            content: '↑';
+        }
+        th.sorted-desc .sort-icon {
+            opacity: 1;
+        }
+        th.sorted-desc .sort-icon::after {
+            content: '↓';
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-active { background-color: #d4edda; color: #155724; }
+        .status-expiring_soon { background-color: #fff3cd; color: #856404; }
+        .status-lapsed { background-color: #f8d7da; color: #721c24; }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        .pass { color: green; font-weight: bold; }
+        .fail { color: red; font-weight: bold; }
+        .sort-info {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #e7f3ff;
+            border-left: 4px solid #0066cc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sorting Functionality Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Data</h2>
+        <p>Creating test players with various values for sorting:</p>
+        <ul>
+            <li>5 players with different names (alphabetical order test)</li>
+            <li>Different expiry dates (date sorting test)</li>
+            <li>Different statuses (status sorting test)</li>
+            <li>Different payment amounts (numeric sorting test)</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>Current Sort</h2>
+        <div id="sortInfo" class="sort-info"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Sorted Results (Click headers to sort)</h2>
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th data-sort="playerName">Player Name <span class="sort-icon">↕</span></th>
+                    <th data-sort="guardianName">Guardian Name <span class="sort-icon">↕</span></th>
+                    <th data-sort="membershipPlan">Membership Plan <span class="sort-icon">↕</span></th>
+                    <th data-sort="lastPaymentDate">Last Payment Date <span class="sort-icon">↕</span></th>
+                    <th data-sort="lastPaymentAmount">Last Payment Amount <span class="sort-icon">↕</span></th>
+                    <th data-sort="expiryDate">Expiry Date <span class="sort-icon">↕</span></th>
+                    <th data-sort="status">Status <span class="sort-icon">↕</span></th>
+                    <th data-sort="daysUntilExpiry">Days Until Expiry <span class="sort-icon">↕</span></th>
+                </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+        </table>
+    </div>
+
+    <div class="test-section">
+        <h2>Automated Test Results</h2>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        // Mock test data with various values for sorting
+        const testPlayers = [
+            {
+                playerName: 'Charlie Brown',
+                guardianName: 'David Brown',
+                membershipPlan: 'Monthly',
+                lastPaymentDate: new Date('2024-01-15'),
+                lastPaymentAmount: 50.00,
+                expiryDate: new Date('2024-02-15'),
+                status: 'lapsed',
+                daysUntilExpiry: -30
+            },
+            {
+                playerName: 'Alice Smith',
+                guardianName: 'Bob Smith',
+                membershipPlan: 'Annual',
+                lastPaymentDate: new Date('2024-03-01'),
+                lastPaymentAmount: 500.00,
+                expiryDate: new Date('2025-03-01'),
+                status: 'active',
+                daysUntilExpiry: 200
+            },
+            {
+                playerName: 'Eve Johnson',
+                guardianName: 'Frank Johnson',
+                membershipPlan: 'Quarterly',
+                lastPaymentDate: new Date('2024-02-20'),
+                lastPaymentAmount: 150.00,
+                expiryDate: new Date('2024-05-20'),
+                status: 'expiring_soon',
+                daysUntilExpiry: 5
+            },
+            {
+                playerName: 'Bob Wilson',
+                guardianName: 'Carol Wilson',
+                membershipPlan: 'Monthly',
+                lastPaymentDate: new Date('2024-03-10'),
+                lastPaymentAmount: 50.00,
+                expiryDate: new Date('2024-04-10'),
+                status: 'expiring_soon',
+                daysUntilExpiry: 3
+            },
+            {
+                playerName: 'Diana Lee',
+                guardianName: 'Edward Lee',
+                membershipPlan: 'Annual',
+                lastPaymentDate: new Date('2024-01-01'),
+                lastPaymentAmount: 500.00,
+                expiryDate: new Date('2025-01-01'),
+                status: 'active',
+                daysUntilExpiry: 150
+            }
+        ];
+
+        let currentSort = { column: 'playerName', direction: 'asc' };
+
+        // Sort players based on current sort settings
+        function sortPlayers(players) {
+            const { column, direction } = currentSort;
+            const multiplier = direction === 'asc' ? 1 : -1;
+            
+            return [...players].sort((a, b) => {
+                let aVal = a[column];
+                let bVal = b[column];
+                
+                // Handle dates
+                if (aVal instanceof Date && bVal instanceof Date) {
+                    return (aVal - bVal) * multiplier;
+                }
+                
+                // Handle numbers
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    return (aVal - bVal) * multiplier;
+                }
+                
+                // Handle strings
+                return String(aVal).localeCompare(String(bVal)) * multiplier;
+            });
+        }
+
+        // Handle sort change
+        function handleSortChange(column) {
+            // Toggle direction if same column, otherwise default to ascending
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'asc';
+            }
+            
+            // Update header styling
+            document.querySelectorAll('th[data-sort]').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+                if (th.dataset.sort === column) {
+                    th.classList.add(`sorted-${currentSort.direction}`);
+                }
+            });
+            
+            // Update sort info
+            updateSortInfo();
+            
+            // Re-render table
+            renderTable();
+        }
+
+        // Update sort info display
+        function updateSortInfo() {
+            const sortInfo = document.getElementById('sortInfo');
+            const columnLabel = currentSort.column.replace(/([A-Z])/g, ' $1').trim();
+            const directionLabel = currentSort.direction === 'asc' ? 'Ascending' : 'Descending';
+            sortInfo.textContent = `Sorted by: ${columnLabel} (${directionLabel})`;
+        }
+
+        // Render table
+        function renderTable() {
+            const tbody = document.getElementById('resultsBody');
+            const sorted = sortPlayers(testPlayers);
+
+            tbody.innerHTML = sorted.map(p => `
+                <tr>
+                    <td>${p.playerName}</td>
+                    <td>${p.guardianName}</td>
+                    <td>${p.membershipPlan}</td>
+                    <td>${formatDate(p.lastPaymentDate)}</td>
+                    <td>${p.lastPaymentAmount.toFixed(2)}</td>
+                    <td>${formatDate(p.expiryDate)}</td>
+                    <td><span class="status-badge status-${p.status}">${formatStatus(p.status)}</span></td>
+                    <td>${p.daysUntilExpiry}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Format date for display
+        function formatDate(date) {
+            if (!date) return 'N/A';
+            if (!(date instanceof Date)) date = new Date(date);
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        // Format status for display
+        function formatStatus(status) {
+            return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        // Run automated tests
+        function runTests() {
+            const results = [];
+
+            // Test 1: Sort by name ascending
+            currentSort = { column: 'playerName', direction: 'asc' };
+            const nameAsc = sortPlayers(testPlayers);
+            const nameAscCorrect = nameAsc[0].playerName === 'Alice Smith' && 
+                                   nameAsc[4].playerName === 'Eve Johnson';
+            results.push({
+                name: 'Sort by Name (Ascending)',
+                pass: nameAscCorrect,
+                details: `First: ${nameAsc[0].playerName}, Last: ${nameAsc[4].playerName}`
+            });
+
+            // Test 2: Sort by name descending
+            currentSort = { column: 'playerName', direction: 'desc' };
+            const nameDesc = sortPlayers(testPlayers);
+            const nameDescCorrect = nameDesc[0].playerName === 'Eve Johnson' && 
+                                    nameDesc[4].playerName === 'Alice Smith';
+            results.push({
+                name: 'Sort by Name (Descending)',
+                pass: nameDescCorrect,
+                details: `First: ${nameDesc[0].playerName}, Last: ${nameDesc[4].playerName}`
+            });
+
+            // Test 3: Sort by expiry date ascending
+            currentSort = { column: 'expiryDate', direction: 'asc' };
+            const dateAsc = sortPlayers(testPlayers);
+            const dateAscCorrect = dateAsc[0].playerName === 'Charlie Brown' && 
+                                   dateAsc[4].playerName === 'Alice Smith';
+            results.push({
+                name: 'Sort by Expiry Date (Ascending)',
+                pass: dateAscCorrect,
+                details: `First: ${dateAsc[0].playerName} (${formatDate(dateAsc[0].expiryDate)}), Last: ${dateAsc[4].playerName} (${formatDate(dateAsc[4].expiryDate)})`
+            });
+
+            // Test 4: Sort by expiry date descending
+            currentSort = { column: 'expiryDate', direction: 'desc' };
+            const dateDesc = sortPlayers(testPlayers);
+            const dateDescCorrect = dateDesc[0].playerName === 'Alice Smith' && 
+                                    dateDesc[4].playerName === 'Charlie Brown';
+            results.push({
+                name: 'Sort by Expiry Date (Descending)',
+                pass: dateDescCorrect,
+                details: `First: ${dateDesc[0].playerName} (${formatDate(dateDesc[0].expiryDate)}), Last: ${dateDesc[4].playerName} (${formatDate(dateDesc[4].expiryDate)})`
+            });
+
+            // Test 5: Sort by status ascending
+            currentSort = { column: 'status', direction: 'asc' };
+            const statusAsc = sortPlayers(testPlayers);
+            const statusAscCorrect = statusAsc[0].status === 'active' && 
+                                     statusAsc[4].status === 'lapsed';
+            results.push({
+                name: 'Sort by Status (Ascending)',
+                pass: statusAscCorrect,
+                details: `First: ${statusAsc[0].status}, Last: ${statusAsc[4].status}`
+            });
+
+            // Test 6: Sort by status descending
+            currentSort = { column: 'status', direction: 'desc' };
+            const statusDesc = sortPlayers(testPlayers);
+            const statusDescCorrect = statusDesc[0].status === 'lapsed' && 
+                                      statusDesc[4].status === 'active';
+            results.push({
+                name: 'Sort by Status (Descending)',
+                pass: statusDescCorrect,
+                details: `First: ${statusDesc[0].status}, Last: ${statusDesc[4].status}`
+            });
+
+            // Test 7: Sort by payment amount ascending
+            currentSort = { column: 'lastPaymentAmount', direction: 'asc' };
+            const amountAsc = sortPlayers(testPlayers);
+            const amountAscCorrect = amountAsc[0].lastPaymentAmount === 50.00 && 
+                                     amountAsc[4].lastPaymentAmount === 500.00;
+            results.push({
+                name: 'Sort by Payment Amount (Ascending)',
+                pass: amountAscCorrect,
+                details: `First: ${amountAsc[0].lastPaymentAmount}, Last: ${amountAsc[4].lastPaymentAmount}`
+            });
+
+            // Test 8: Sort by payment amount descending
+            currentSort = { column: 'lastPaymentAmount', direction: 'desc' };
+            const amountDesc = sortPlayers(testPlayers);
+            const amountDescCorrect = amountDesc[0].lastPaymentAmount === 500.00 && 
+                                      amountDesc[4].lastPaymentAmount === 50.00;
+            results.push({
+                name: 'Sort by Payment Amount (Descending)',
+                pass: amountDescCorrect,
+                details: `First: ${amountDesc[0].lastPaymentAmount}, Last: ${amountDesc[4].lastPaymentAmount}`
+            });
+
+            // Test 9: Sort by days until expiry ascending
+            currentSort = { column: 'daysUntilExpiry', direction: 'asc' };
+            const daysAsc = sortPlayers(testPlayers);
+            const daysAscCorrect = daysAsc[0].daysUntilExpiry === -30 && 
+                                   daysAsc[4].daysUntilExpiry === 200;
+            results.push({
+                name: 'Sort by Days Until Expiry (Ascending)',
+                pass: daysAscCorrect,
+                details: `First: ${daysAsc[0].daysUntilExpiry}, Last: ${daysAsc[4].daysUntilExpiry}`
+            });
+
+            // Test 10: Sort by days until expiry descending
+            currentSort = { column: 'daysUntilExpiry', direction: 'desc' };
+            const daysDesc = sortPlayers(testPlayers);
+            const daysDescCorrect = daysDesc[0].daysUntilExpiry === 200 && 
+                                    daysDesc[4].daysUntilExpiry === -30;
+            results.push({
+                name: 'Sort by Days Until Expiry (Descending)',
+                pass: daysDescCorrect,
+                details: `First: ${daysDesc[0].daysUntilExpiry}, Last: ${daysDesc[4].daysUntilExpiry}`
+            });
+
+            // Test 11: Toggle direction on same column
+            currentSort = { column: 'playerName', direction: 'asc' };
+            handleSortChange('playerName'); // Should toggle to desc
+            const toggleCorrect = currentSort.direction === 'desc';
+            results.push({
+                name: 'Toggle Sort Direction',
+                pass: toggleCorrect,
+                details: `Direction after toggle: ${currentSort.direction}`
+            });
+
+            // Test 12: Change column resets to ascending
+            currentSort = { column: 'playerName', direction: 'desc' };
+            handleSortChange('status'); // Should change to status asc
+            const changeColumnCorrect = currentSort.column === 'status' && currentSort.direction === 'asc';
+            results.push({
+                name: 'Change Column Resets to Ascending',
+                pass: changeColumnCorrect,
+                details: `Column: ${currentSort.column}, Direction: ${currentSort.direction}`
+            });
+
+            // Display results
+            const testResults = document.getElementById('testResults');
+            const passCount = results.filter(r => r.pass).length;
+            const totalCount = results.length;
+            
+            testResults.innerHTML = `
+                <div style="margin-bottom: 15px; font-size: 1.2rem;">
+                    <strong>Tests Passed: ${passCount} / ${totalCount}</strong>
+                </div>
+                ${results.map(r => `
+                    <div style="margin: 10px 0;">
+                        <span class="${r.pass ? 'pass' : 'fail'}">${r.pass ? '✓' : '✗'}</span>
+                        <strong>${r.name}:</strong> ${r.details}
+                    </div>
+                `).join('')}
+            `;
+
+            // Reset to default sort
+            currentSort = { column: 'playerName', direction: 'asc' };
+        }
+
+        // Set up event listeners
+        document.querySelectorAll('th[data-sort]').forEach(header => {
+            header.addEventListener('click', (e) => {
+                const column = e.currentTarget.dataset.sort;
+                handleSortChange(column);
+            });
+        });
+
+        // Initialize
+        updateSortInfo();
+        renderTable();
+        
+        // Update header styling for initial sort
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+            if (th.dataset.sort === currentSort.column) {
+                th.classList.add(`sorted-${currentSort.direction}`);
+            }
+        });
+
+        // Run tests after a short delay to ensure DOM is ready
+        setTimeout(runTests, 100);
+    </script>
+</body>
+</html>

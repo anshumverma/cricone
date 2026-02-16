@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 15.2 - UI Polish and Accessibility Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .test-section h2 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        .test-item {
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #667eea;
+            background-color: #f8f9fa;
+        }
+        .pass {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        .fail {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .info {
+            border-left-color: #17a2b8;
+            background-color: #d1ecf1;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #667eea;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        button:hover {
+            background-color: #5568d3;
+        }
+        .results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Task 15.2 - UI Polish and Accessibility Test</h1>
+    <p>This test verifies the UI polish and accessibility improvements for the Cricket Academy Membership Manager.</p>
+
+    <div class="test-section">
+        <h2>Test 1: Accessibility Features</h2>
+        <button onclick="testAccessibility()">Run Accessibility Tests</button>
+        <div id="accessibilityResults" class="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Responsive Design</h2>
+        <button onclick="testResponsive()">Check Responsive Styles</button>
+        <div id="responsiveResults" class="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Keyboard Navigation</h2>
+        <button onclick="testKeyboard()">Test Keyboard Support</button>
+        <div id="keyboardResults" class="results"></div>
+        <div class="info" style="margin-top: 15px;">
+            <strong>Manual Test:</strong> Open index.html and try:
+            <ul>
+                <li>Press Tab to navigate through interactive elements</li>
+                <li>Press Enter or Space on the upload label to trigger file selection</li>
+                <li>Press Enter or Space on filter buttons to change filters</li>
+                <li>Press Enter or Space on table headers to sort</li>
+                <li>Press Enter or Space on table rows to view payment history</li>
+                <li>Press Escape to close the payment history modal</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Visual Polish</h2>
+        <button onclick="testVisualPolish()">Check Visual Improvements</button>
+        <div id="visualResults" class="results"></div>
+    </div>
+
+    <script>
+        function testAccessibility() {
+            const results = document.getElementById('accessibilityResults');
+            const tests = [];
+
+            // Load the index.html content
+            fetch('index.html')
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+
+                    // Test 1: Check for ARIA labels
+                    const ariaLabels = doc.querySelectorAll('[aria-label]');
+                    tests.push({
+                        name: 'ARIA labels present',
+                        pass: ariaLabels.length > 0,
+                        message: `Found ${ariaLabels.length} elements with aria-label`
+                    });
+
+                    // Test 2: Check for role attributes
+                    const roleElements = doc.querySelectorAll('[role]');
+                    tests.push({
+                        name: 'Role attributes present',
+                        pass: roleElements.length > 0,
+                        message: `Found ${roleElements.length} elements with role attributes`
+                    });
+
+                    // Test 3: Check for aria-live regions
+                    const liveRegions = doc.querySelectorAll('[aria-live]');
+                    tests.push({
+                        name: 'Live regions for status updates',
+                        pass: liveRegions.length > 0,
+                        message: `Found ${liveRegions.length} aria-live regions`
+                    });
+
+                    // Test 4: Check for semantic HTML
+                    const header = doc.querySelector('header[role="banner"]');
+                    const main = doc.querySelector('main[role="main"]');
+                    const footer = doc.querySelector('footer[role="contentinfo"]');
+                    tests.push({
+                        name: 'Semantic HTML structure',
+                        pass: header && main && footer,
+                        message: `Header: ${!!header}, Main: ${!!main}, Footer: ${!!footer}`
+                    });
+
+                    // Test 5: Check for help text
+                    const helpTexts = doc.querySelectorAll('.help-text');
+                    tests.push({
+                        name: 'Help text present',
+                        pass: helpTexts.length > 0,
+                        message: `Found ${helpTexts.length} help text elements`
+                    });
+
+                    // Test 6: Check for aria-describedby
+                    const describedBy = doc.querySelectorAll('[aria-describedby]');
+                    tests.push({
+                        name: 'Form fields with descriptions',
+                        pass: describedBy.length > 0,
+                        message: `Found ${describedBy.length} elements with aria-describedby`
+                    });
+
+                    // Test 7: Check for screen reader only content
+                    const srOnly = doc.querySelectorAll('.sr-only');
+                    tests.push({
+                        name: 'Screen reader only content',
+                        pass: srOnly.length > 0,
+                        message: `Found ${srOnly.length} sr-only elements`
+                    });
+
+                    // Test 8: Check for aria-pressed on filter buttons
+                    const filterButtons = doc.querySelectorAll('.filter-btn[aria-pressed]');
+                    tests.push({
+                        name: 'Filter buttons with aria-pressed',
+                        pass: filterButtons.length > 0,
+                        message: `Found ${filterButtons.length} filter buttons with aria-pressed`
+                    });
+
+                    displayResults(results, tests);
+                })
+                .catch(error => {
+                    results.innerHTML = `<div class="test-item fail">Error loading index.html: ${error.message}</div>`;
+                });
+        }
+
+        function testResponsive() {
+            const results = document.getElementById('responsiveResults');
+            const tests = [];
+
+            // Load the styles.css content
+            fetch('styles.css')
+                .then(response => response.text())
+                .then(css => {
+                    // Test 1: Check for mobile breakpoint
+                    tests.push({
+                        name: 'Mobile breakpoint (max-width: 768px)',
+                        pass: css.includes('@media (max-width: 768px)'),
+                        message: 'Mobile styles defined'
+                    });
+
+                    // Test 2: Check for tablet breakpoint
+                    tests.push({
+                        name: 'Tablet breakpoint (max-width: 1024px)',
+                        pass: css.includes('@media (max-width: 1024px)'),
+                        message: 'Tablet styles defined'
+                    });
+
+                    // Test 3: Check for small mobile breakpoint
+                    tests.push({
+                        name: 'Small mobile breakpoint (max-width: 480px)',
+                        pass: css.includes('@media (max-width: 480px)'),
+                        message: 'Small mobile styles defined'
+                    });
+
+                    // Test 4: Check for print styles
+                    tests.push({
+                        name: 'Print styles',
+                        pass: css.includes('@media print'),
+                        message: 'Print-friendly styles defined'
+                    });
+
+                    // Test 5: Check for reduced motion support
+                    tests.push({
+                        name: 'Reduced motion support',
+                        pass: css.includes('@media (prefers-reduced-motion'),
+                        message: 'Respects user motion preferences'
+                    });
+
+                    // Test 6: Check for high contrast support
+                    tests.push({
+                        name: 'High contrast mode support',
+                        pass: css.includes('@media (prefers-contrast: high)'),
+                        message: 'High contrast mode styles defined'
+                    });
+
+                    // Test 7: Check for dark mode support
+                    tests.push({
+                        name: 'Dark mode support',
+                        pass: css.includes('@media (prefers-color-scheme: dark)'),
+                        message: 'Dark mode styles defined'
+                    });
+
+                    // Test 8: Check for flexible layouts
+                    tests.push({
+                        name: 'Flexible layouts (flexbox)',
+                        pass: css.includes('flex-wrap: wrap'),
+                        message: 'Responsive flex layouts used'
+                    });
+
+                    displayResults(results, tests);
+                })
+                .catch(error => {
+                    results.innerHTML = `<div class="test-item fail">Error loading styles.css: ${error.message}</div>`;
+                });
+        }
+
+        function testKeyboard() {
+            const results = document.getElementById('keyboardResults');
+            const tests = [];
+
+            // Load the app.js content
+            fetch('app.js')
+                .then(response => response.text())
+                .then(js => {
+                    // Test 1: Check for keydown event listeners
+                    tests.push({
+                        name: 'Keydown event listeners',
+                        pass: js.includes('addEventListener(\'keydown\''),
+                        message: 'Keyboard event handlers present'
+                    });
+
+                    // Test 2: Check for Enter key handling
+                    tests.push({
+                        name: 'Enter key support',
+                        pass: js.includes('e.key === \'Enter\'') || js.includes('event.key === \'Enter\''),
+                        message: 'Enter key handling implemented'
+                    });
+
+                    // Test 3: Check for Space key handling
+                    tests.push({
+                        name: 'Space key support',
+                        pass: js.includes('e.key === \' \'') || js.includes('event.key === \' \''),
+                        message: 'Space key handling implemented'
+                    });
+
+                    // Test 4: Check for Escape key handling
+                    tests.push({
+                        name: 'Escape key support',
+                        pass: js.includes('e.key === \'Escape\'') || js.includes('event.key === \'Escape\''),
+                        message: 'Escape key handling implemented'
+                    });
+
+                    // Test 5: Check for focus management
+                    tests.push({
+                        name: 'Focus management',
+                        pass: js.includes('.focus()'),
+                        message: 'Focus management implemented'
+                    });
+
+                    // Test 6: Check for handleRowKeydown function
+                    tests.push({
+                        name: 'Table row keyboard navigation',
+                        pass: js.includes('handleRowKeydown'),
+                        message: 'Table row keyboard handler present'
+                    });
+
+                    displayResults(results, tests);
+                })
+                .catch(error => {
+                    results.innerHTML = `<div class="test-item fail">Error loading app.js: ${error.message}</div>`;
+                });
+        }
+
+        function testVisualPolish() {
+            const results = document.getElementById('visualResults');
+            const tests = [];
+
+            // Load the styles.css content
+            fetch('styles.css')
+                .then(response => response.text())
+                .then(css => {
+                    // Test 1: Check for transitions
+                    tests.push({
+                        name: 'Smooth transitions',
+                        pass: css.includes('transition:'),
+                        message: 'CSS transitions for smooth interactions'
+                    });
+
+                    // Test 2: Check for animations
+                    tests.push({
+                        name: 'Animations',
+                        pass: css.includes('@keyframes'),
+                        message: 'CSS animations defined'
+                    });
+
+                    // Test 3: Check for hover effects
+                    tests.push({
+                        name: 'Hover effects',
+                        pass: css.includes(':hover'),
+                        message: 'Interactive hover states'
+                    });
+
+                    // Test 4: Check for focus styles
+                    tests.push({
+                        name: 'Focus styles',
+                        pass: css.includes(':focus'),
+                        message: 'Visible focus indicators'
+                    });
+
+                    // Test 5: Check for box shadows
+                    tests.push({
+                        name: 'Depth with shadows',
+                        pass: css.includes('box-shadow:'),
+                        message: 'Visual depth with shadows'
+                    });
+
+                    // Test 6: Check for border radius
+                    tests.push({
+                        name: 'Rounded corners',
+                        pass: css.includes('border-radius:'),
+                        message: 'Modern rounded corners'
+                    });
+
+                    // Test 7: Check for transform effects
+                    tests.push({
+                        name: 'Transform effects',
+                        pass: css.includes('transform:'),
+                        message: 'Transform effects for polish'
+                    });
+
+                    // Test 8: Check for fadeIn animation
+                    tests.push({
+                        name: 'Fade-in animation',
+                        pass: css.includes('@keyframes fadeIn'),
+                        message: 'Smooth fade-in for status messages'
+                    });
+
+                    displayResults(results, tests);
+                })
+                .catch(error => {
+                    results.innerHTML = `<div class="test-item fail">Error loading styles.css: ${error.message}</div>`;
+                });
+        }
+
+        function displayResults(container, tests) {
+            const passed = tests.filter(t => t.pass).length;
+            const total = tests.length;
+            const percentage = Math.round((passed / total) * 100);
+
+            let html = `<div class="test-item ${percentage === 100 ? 'pass' : 'info'}">
+                <strong>Results: ${passed}/${total} tests passed (${percentage}%)</strong>
+            </div>`;
+
+            tests.forEach(test => {
+                html += `<div class="test-item ${test.pass ? 'pass' : 'fail'}">
+                    <strong>${test.pass ? '✓' : '✗'} ${test.name}</strong><br>
+                    ${test.message}
+                </div>`;
+            });
+
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

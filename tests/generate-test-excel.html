@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Test Excel File</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .info {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generate Test Excel Files</h1>
+    
+    <div class="info">
+        <h3>Test Scenarios:</h3>
+        <ul>
+            <li><strong>Scenario 1:</strong> Players with known plans (Monthly, Quarterly, Annual)</li>
+            <li><strong>Scenario 2:</strong> Players with unknown plans to test flagging</li>
+            <li><strong>Scenario 3:</strong> Players with multiple payments to test most recent selection</li>
+        </ul>
+    </div>
+
+    <button onclick="generateScenario1()">Generate Scenario 1: Known Plans</button>
+    <button onclick="generateScenario2()">Generate Scenario 2: Unknown Plans</button>
+    <button onclick="generateScenario3()">Generate Scenario 3: Multiple Payments</button>
+
+    <div id="preview"></div>
+
+    <script>
+        function generateScenario1() {
+            const data = [
+                {
+                    'Payer Name': 'John Doe',
+                    'Player Name': 'Jane Doe',
+                    'Amount': 100,
+                    'Date': '2024-01-15',
+                    'Campaign': 'Monthly'
+                },
+                {
+                    'Payer Name': 'Bob Smith',
+                    'Player Name': 'Alice Smith',
+                    'Amount': 250,
+                    'Date': '2024-01-10',
+                    'Campaign': 'Quarterly'
+                },
+                {
+                    'Payer Name': 'Tom Brown',
+                    'Player Name': 'Tim Brown',
+                    'Amount': 900,
+                    'Date': '2024-01-05',
+                    'Campaign': 'Annual'
+                },
+                {
+                    'Payer Name': 'Sarah Wilson',
+                    'Player Name': 'Sam Wilson',
+                    'Amount': 100,
+                    'Date': '2024-02-01',
+                    'Campaign': 'Monthly'
+                },
+                {
+                    'Payer Name': 'Mike Johnson',
+                    'Player Name': 'Mary Johnson',
+                    'Amount': 250,
+                    'Date': '2024-02-15',
+                    'Campaign': 'Quarterly'
+                }
+            ];
+
+            downloadExcel(data, 'test-scenario-1-known-plans.xlsx');
+            showPreview(data);
+        }
+
+        function generateScenario2() {
+            const data = [
+                {
+                    'Payer Name': 'John Doe',
+                    'Player Name': 'Jane Doe',
+                    'Amount': 100,
+                    'Date': '2024-01-15',
+                    'Campaign': 'Monthly'
+                },
+                {
+                    'Payer Name': 'Bob Smith',
+                    'Player Name': 'Alice Smith',
+                    'Amount': 150,
+                    'Date': '2024-01-10',
+                    'Campaign': 'Premium'
+                },
+                {
+                    'Payer Name': 'Tom Brown',
+                    'Player Name': 'Tim Brown',
+                    'Amount': 200,
+                    'Date': '2024-01-05',
+                    'Campaign': 'VIP'
+                },
+                {
+                    'Payer Name': 'Sarah Wilson',
+                    'Player Name': 'Sam Wilson',
+                    'Amount': 300,
+                    'Date': '2024-02-01',
+                    'Campaign': 'Elite'
+                }
+            ];
+
+            downloadExcel(data, 'test-scenario-2-unknown-plans.xlsx');
+            showPreview(data);
+        }
+
+        function generateScenario3() {
+            const data = [
+                // Jane Doe - 3 payments, most recent is March
+                {
+                    'Payer Name': 'John Doe',
+                    'Player Name': 'Jane Doe',
+                    'Amount': 100,
+                    'Date': '2024-01-01',
+                    'Campaign': 'Monthly'
+                },
+                {
+                    'Payer Name': 'John Doe',
+                    'Player Name': 'Jane Doe',
+                    'Amount': 100,
+                    'Date': '2024-02-01',
+                    'Campaign': 'Monthly'
+                },
+                {
+                    'Payer Name': 'John Doe',
+                    'Player Name': 'Jane Doe',
+                    'Amount': 100,
+                    'Date': '2024-03-01',
+                    'Campaign': 'Monthly'
+                },
+                // Alice Smith - 2 payments, most recent is February
+                {
+                    'Payer Name': 'Bob Smith',
+                    'Player Name': 'Alice Smith',
+                    'Amount': 250,
+                    'Date': '2024-01-01',
+                    'Campaign': 'Quarterly'
+                },
+                {
+                    'Payer Name': 'Bob Smith',
+                    'Player Name': 'Alice Smith',
+                    'Amount': 250,
+                    'Date': '2024-02-01',
+                    'Campaign': 'Quarterly'
+                },
+                // Tim Brown - single payment
+                {
+                    'Payer Name': 'Tom Brown',
+                    'Player Name': 'Tim Brown',
+                    'Amount': 900,
+                    'Date': '2024-01-01',
+                    'Campaign': 'Annual'
+                }
+            ];
+
+            downloadExcel(data, 'test-scenario-3-multiple-payments.xlsx');
+            showPreview(data);
+        }
+
+        function downloadExcel(data, filename) {
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Payments');
+            XLSX.writeFile(wb, filename);
+        }
+
+        function showPreview(data) {
+            const preview = document.getElementById('preview');
+            
+            let html = '<h3>Preview of Generated Data:</h3>';
+            html += '<table>';
+            html += '<thead><tr>';
+            
+            // Headers
+            const headers = Object.keys(data[0]);
+            headers.forEach(header => {
+                html += `<th>${header}</th>`;
+            });
+            html += '</tr></thead>';
+            
+            // Rows
+            html += '<tbody>';
+            data.forEach(row => {
+                html += '<tr>';
+                headers.forEach(header => {
+                    html += `<td>${row[header]}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody>';
+            
+            html += '</table>';
+            preview.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

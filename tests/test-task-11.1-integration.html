@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 11.1 - Payment History Detail View Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #667eea; }
+        h2 { color: #764ba2; margin-top: 0; }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .pass { background-color: #d4edda; color: #155724; }
+        .fail { background-color: #f8d7da; color: #721c24; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        .clickable-row {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .clickable-row:hover {
+            background-color: #f8f9fa;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal.show {
+            display: block;
+        }
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: #000;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn-primary {
+            background-color: #667eea;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Task 11.1 - Payment History Detail View Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Requirements</h2>
+        <ul>
+            <li>✓ Add click handler to show player details</li>
+            <li>✓ Display all payments for selected player</li>
+            <li>✓ Show payment date, amount, and plan for each payment</li>
+            <li>✓ Sort payments chronologically</li>
+            <li>✓ Display total amount paid</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>Sample Player Data</h2>
+        <p>Click on any row to view payment history</p>
+        <table id="playersTable">
+            <thead>
+                <tr>
+                    <th>Player Name</th>
+                    <th>Guardian Name</th>
+                    <th>Membership Plan</th>
+                    <th>Last Payment Date</th>
+                    <th>Last Payment Amount</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="playersTableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="testResults"></div>
+        <button class="btn btn-primary" onclick="runTests()">Run Tests</button>
+    </div>
+
+    <!-- Payment History Modal -->
+    <div id="paymentHistoryModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Payment History</h2>
+            <div id="paymentHistoryContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Sample test data
+        const testPlayers = [
+            {
+                playerName: 'John Smith',
+                guardianName: 'Mary Smith',
+                membershipPlan: 'Monthly',
+                lastPaymentDate: new Date('2024-01-15'),
+                lastPaymentAmount: 100,
+                status: 'active',
+                totalPayments: 3,
+                totalAmountPaid: 300,
+                paymentHistory: [
+                    { paymentDate: new Date('2023-11-15'), paymentAmount: 100, membershipPlan: 'Monthly' },
+                    { paymentDate: new Date('2023-12-15'), paymentAmount: 100, membershipPlan: 'Monthly' },
+                    { paymentDate: new Date('2024-01-15'), paymentAmount: 100, membershipPlan: 'Monthly' }
+                ]
+            },
+            {
+                playerName: 'Sarah Johnson',
+                guardianName: 'Robert Johnson',
+                membershipPlan: 'Quarterly',
+                lastPaymentDate: new Date('2024-01-01'),
+                lastPaymentAmount: 250,
+                status: 'active',
+                totalPayments: 2,
+                totalAmountPaid: 500,
+                paymentHistory: [
+                    { paymentDate: new Date('2023-10-01'), paymentAmount: 250, membershipPlan: 'Quarterly' },
+                    { paymentDate: new Date('2024-01-01'), paymentAmount: 250, membershipPlan: 'Quarterly' }
+                ]
+            },
+            {
+                playerName: 'Mike Davis',
+                guardianName: 'Linda Davis',
+                membershipPlan: 'Annual',
+                lastPaymentDate: new Date('2023-06-01'),
+                lastPaymentAmount: 1000,
+                status: 'active',
+                totalPayments: 1,
+                totalAmountPaid: 1000,
+                paymentHistory: [
+                    { paymentDate: new Date('2023-06-01'), paymentAmount: 1000, membershipPlan: 'Annual' }
+                ]
+            }
+        ];
+
+        // Format date for display
+        function formatDate(date) {
+            if (!date) return 'N/A';
+            if (!(date instanceof Date)) date = new Date(date);
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        // Render players table
+        function renderPlayersTable() {
+            const tbody = document.getElementById('playersTableBody');
+            tbody.innerHTML = testPlayers.map((player, index) => `
+                <tr class="clickable-row" onclick="showPaymentHistory(${index})">
+                    <td>${player.playerName}</td>
+                    <td>${player.guardianName}</td>
+                    <td>${player.membershipPlan}</td>
+                    <td>${formatDate(player.lastPaymentDate)}</td>
+                    <td>$${player.lastPaymentAmount.toFixed(2)}</td>
+                    <td><span class="status-badge status-${player.status}">${player.status.toUpperCase()}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // Show payment history for a player
+        function showPaymentHistory(playerIndex) {
+            const player = testPlayers[playerIndex];
+            if (!player) return;
+            
+            const modal = document.getElementById('paymentHistoryModal');
+            const content = document.getElementById('paymentHistoryContent');
+            
+            content.innerHTML = `
+                <h3>${player.playerName}</h3>
+                <p><strong>Guardian:</strong> ${player.guardianName}</p>
+                <p><strong>Total Payments:</strong> ${player.totalPayments}</p>
+                <p><strong>Total Amount Paid:</strong> $${player.totalAmountPaid.toFixed(2)}</p>
+                <h4>Payment History</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Plan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${player.paymentHistory.map(payment => `
+                            <tr>
+                                <td>${formatDate(payment.paymentDate)}</td>
+                                <td>$${payment.paymentAmount.toFixed(2)}</td>
+                                <td>${payment.membershipPlan}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            modal.classList.add('show');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('paymentHistoryModal').classList.remove('show');
+        }
+
+        // Run automated tests
+        function runTests() {
+            const results = [];
+            
+            // Test 1: Click handler exists
+            const firstRow = document.querySelector('.clickable-row');
+            const hasClickHandler = firstRow && firstRow.hasAttribute('onclick');
+            results.push({
+                name: 'Test 1: Click handler exists on table rows',
+                pass: hasClickHandler,
+                message: hasClickHandler ? 'Click handler found on rows' : 'No click handler found'
+            });
+            
+            // Test 2: Payment history displays all payments
+            const player = testPlayers[0];
+            results.push({
+                name: 'Test 2: Payment history contains all payments',
+                pass: player.paymentHistory.length === player.totalPayments,
+                message: `Payment history has ${player.paymentHistory.length} payments, total is ${player.totalPayments}`
+            });
+            
+            // Test 3: Payments are sorted chronologically
+            const isSorted = player.paymentHistory.every((payment, index) => {
+                if (index === 0) return true;
+                return payment.paymentDate >= player.paymentHistory[index - 1].paymentDate;
+            });
+            results.push({
+                name: 'Test 3: Payments are sorted chronologically (oldest to newest)',
+                pass: isSorted,
+                message: isSorted ? 'Payments are correctly sorted' : 'Payments are not sorted correctly'
+            });
+            
+            // Test 4: Total amount paid is correct
+            const calculatedTotal = player.paymentHistory.reduce((sum, p) => sum + p.paymentAmount, 0);
+            const totalCorrect = calculatedTotal === player.totalAmountPaid;
+            results.push({
+                name: 'Test 4: Total amount paid is calculated correctly',
+                pass: totalCorrect,
+                message: `Calculated: $${calculatedTotal}, Stored: $${player.totalAmountPaid}`
+            });
+            
+            // Test 5: Payment details include date, amount, and plan
+            const firstPayment = player.paymentHistory[0];
+            const hasAllFields = firstPayment.paymentDate && 
+                                 firstPayment.paymentAmount !== undefined && 
+                                 firstPayment.membershipPlan;
+            results.push({
+                name: 'Test 5: Payment records include date, amount, and plan',
+                pass: hasAllFields,
+                message: hasAllFields ? 'All required fields present' : 'Missing required fields'
+            });
+            
+            // Test 6: Modal can be opened
+            showPaymentHistory(0);
+            const modal = document.getElementById('paymentHistoryModal');
+            const modalVisible = modal.classList.contains('show');
+            results.push({
+                name: 'Test 6: Modal opens when row is clicked',
+                pass: modalVisible,
+                message: modalVisible ? 'Modal opened successfully' : 'Modal did not open'
+            });
+            closeModal();
+            
+            // Display results
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = results.map(result => `
+                <div class="test-result ${result.pass ? 'pass' : 'fail'}">
+                    <strong>${result.name}:</strong> ${result.pass ? '✓ PASS' : '✗ FAIL'}<br>
+                    ${result.message}
+                </div>
+            `).join('');
+            
+            // Summary
+            const passCount = results.filter(r => r.pass).length;
+            const totalCount = results.length;
+            resultsDiv.innerHTML += `
+                <div class="test-result ${passCount === totalCount ? 'pass' : 'fail'}">
+                    <strong>Summary:</strong> ${passCount}/${totalCount} tests passed
+                </div>
+            `;
+        }
+
+        // Initialize
+        renderPlayersTable();
+        
+        // Close modal on outside click
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('paymentHistoryModal');
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Data Generator</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            background-color: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #5568d3;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Data Generator</h1>
+    <p>Generate Excel files for testing error handling scenarios</p>
+
+    <div class="section">
+        <h2>1. Valid Complete Data</h2>
+        <p>Excel file with complete payment records</p>
+        <button onclick="generateCompleteData()">Download Complete Data</button>
+    </div>
+
+    <div class="section">
+        <h2>2. Incomplete Records</h2>
+        <p>Excel file with some missing required fields</p>
+        <button onclick="generateIncompleteData()">Download Incomplete Data</button>
+    </div>
+
+    <div class="section">
+        <h2>3. Unknown Plans</h2>
+        <p>Excel file with membership plans not in default list</p>
+        <button onclick="generateUnknownPlans()">Download Unknown Plans Data</button>
+    </div>
+
+    <div class="section">
+        <h2>4. Duplicate Payments</h2>
+        <p>Excel file with duplicate payment records</p>
+        <button onclick="generateDuplicates()">Download Duplicate Data</button>
+    </div>
+
+    <div class="section">
+        <h2>5. Mixed Scenarios</h2>
+        <p>Excel file with incomplete records, unknown plans, and duplicates</p>
+        <button onclick="generateMixedData()">Download Mixed Data</button>
+    </div>
+
+    <script>
+        function generateCompleteData() {
+            const data = [
+                ['Payer Name', 'Player Name', 'Amount', 'Date', 'Campaign'],
+                ['John Smith', 'Tommy Smith', 150, new Date('2024-01-15'), 'Monthly'],
+                ['Jane Doe', 'Sarah Doe', 450, new Date('2024-01-20'), 'Quarterly'],
+                ['Bob Johnson', 'Mike Johnson', 1500, new Date('2024-02-01'), 'Annual'],
+                ['Alice Brown', 'Emma Brown', 150, new Date('2024-02-10'), 'Monthly'],
+                ['Charlie Wilson', 'Jack Wilson', 450, new Date('2024-02-15'), 'Quarterly']
+            ];
+            downloadExcel(data, 'complete-data.xlsx');
+        }
+
+        function generateIncompleteData() {
+            const data = [
+                ['Payer Name', 'Player Name', 'Amount', 'Date', 'Campaign'],
+                ['John Smith', 'Tommy Smith', 150, new Date('2024-01-15'), 'Monthly'],
+                ['Jane Doe', '', 450, new Date('2024-01-20'), 'Quarterly'], // Missing player name (OK)
+                ['', 'Mike Johnson', 1500, new Date('2024-02-01'), 'Annual'], // Missing payer name
+                ['Alice Brown', 'Emma Brown', '', new Date('2024-02-10'), 'Monthly'], // Missing amount
+                ['Charlie Wilson', 'Jack Wilson', 450, '', 'Quarterly'], // Missing date
+                ['David Lee', 'Lucy Lee', 150, new Date('2024-02-20'), ''] // Missing plan
+            ];
+            downloadExcel(data, 'incomplete-data.xlsx');
+        }
+
+        function generateUnknownPlans() {
+            const data = [
+                ['Payer Name', 'Player Name', 'Amount', 'Date', 'Campaign'],
+                ['John Smith', 'Tommy Smith', 150, new Date('2024-01-15'), 'Weekly'], // Unknown plan
+                ['Jane Doe', 'Sarah Doe', 450, new Date('2024-01-20'), 'Quarterly'], // Known plan
+                ['Bob Johnson', 'Mike Johnson', 200, new Date('2024-02-01'), 'Bi-Weekly'], // Unknown plan
+                ['Alice Brown', 'Emma Brown', 150, new Date('2024-02-10'), 'Monthly'], // Known plan
+                ['Charlie Wilson', 'Jack Wilson', 800, new Date('2024-02-15'), 'Semi-Annual'] // Unknown plan
+            ];
+            downloadExcel(data, 'unknown-plans.xlsx');
+        }
+
+        function generateDuplicates() {
+            const data = [
+                ['Payer Name', 'Player Name', 'Amount', 'Date', 'Campaign'],
+                ['John Smith', 'Tommy Smith', 150, new Date('2024-01-15'), 'Monthly'],
+                ['John Smith', 'Tommy Smith', 150, new Date('2024-01-15'), 'Monthly'], // Duplicate
+                ['Jane Doe', 'Sarah Doe', 450, new Date('2024-01-20'), 'Quarterly'],
+                ['Jane Doe', 'Sarah Doe', 450, new Date('2024-01-20'), 'Quarterly'], // Duplicate
+                ['Jane Doe', 'Sarah Doe', 450, new Date('2024-01-20'), 'Quarterly'], // Duplicate
+                ['Bob Johnson', 'Mike Johnson', 1500, new Date('2024-02-01'), 'Annual']
+            ];
+            downloadExcel(data, 'duplicate-data.xlsx');
+        }
+
+        function generateMixedData() {
+            const data = [
+                ['Payer Name', 'Player Name', 'Amount', 'Date', 'Campaign'],
+                ['John Smith', 'Tommy Smith', 150, new Date('2024-01-15'), 'Monthly'], // Complete
+                ['John Smith', 'Tommy Smith', 150, new Date('2024-01-15'), 'Monthly'], // Duplicate
+                ['Jane Doe', 'Sarah Doe', 450, new Date('2024-01-20'), 'Weekly'], // Unknown plan
+                ['', 'Mike Johnson', 1500, new Date('2024-02-01'), 'Annual'], // Missing payer
+                ['Alice Brown', 'Emma Brown', '', new Date('2024-02-10'), 'Monthly'], // Missing amount
+                ['Charlie Wilson', 'Jack Wilson', 450, new Date('2024-02-15'), 'Quarterly'], // Complete
+                ['David Lee', 'Lucy Lee', 200, new Date('2024-02-20'), 'Bi-Weekly'], // Unknown plan
+                ['David Lee', 'Lucy Lee', 200, new Date('2024-02-20'), 'Bi-Weekly'] // Duplicate + Unknown
+            ];
+            downloadExcel(data, 'mixed-data.xlsx');
+        }
+
+        function downloadExcel(data, filename) {
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Payments');
+            XLSX.writeFile(wb, filename);
+        }
+    </script>
+</body>
+</html>

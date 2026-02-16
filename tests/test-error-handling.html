@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Handling Test - Cricket Academy Membership Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+        }
+        h2 {
+            color: #764ba2;
+            margin-top: 0;
+        }
+        .test-case {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+        .test-case h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .expected {
+            color: #666;
+            font-style: italic;
+            margin-top: 10px;
+        }
+        .pass {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .fail {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        button {
+            background-color: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #5568d3;
+        }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .instructions {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Error Handling Test Suite</h1>
+    <p>Task 13.1: Add comprehensive error handling</p>
+
+    <div class="instructions">
+        <h3>📋 Test Instructions</h3>
+        <p>This test verifies that the application displays appropriate error messages, warnings, and success messages for various scenarios.</p>
+        <p><strong>How to test:</strong> Open the application below and follow each test case manually.</p>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Cases</h2>
+
+        <div class="test-case">
+            <h3>1. Invalid File Format Error</h3>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Try to upload a non-Excel file (e.g., .txt, .pdf, .jpg)</li>
+            </ol>
+            <p class="expected">✓ Expected: Error message "❌ Invalid file format. Please upload an Excel file (.xlsx or .xls)"</p>
+        </div>
+
+        <div class="test-case">
+            <h3>2. Empty File Error</h3>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Create an empty Excel file or one with no data rows</li>
+                <li>Upload the file</li>
+            </ol>
+            <p class="expected">✓ Expected: Error message about no valid payment records found</p>
+        </div>
+
+        <div class="test-case">
+            <h3>3. Loading Indicator</h3>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Upload a valid Excel file with payment data</li>
+                <li>Observe the status area during processing</li>
+            </ol>
+            <p class="expected">✓ Expected: Loading spinner with "Processing file..." message appears briefly</p>
+        </div>
+
+        <div class="test-case">
+            <h3>4. Incomplete Records Warning</h3>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Upload an Excel file with some rows missing required fields (payer name, amount, date, or plan)</li>
+            </ol>
+            <p class="expected">✓ Expected: Warning message showing count of incomplete records and that they will be excluded</p>
+        </div>
+
+        <div class="test-case">
+            <h3>5. Unknown Membership Plan Warning</h3>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Upload an Excel file with membership plans not in the configured list</li>
+            </ol>
+            <p class="expected">✓ Expected: Warning message listing unknown plans and affected record count</p>
+            <p class="expected">✓ Expected: Rows with unknown plans highlighted with ⚠️ symbol and light yellow background</p>
+        </div>
+
+        <div class="test-case">
+            <h3>6. Success Message for File Upload</h3>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Upload a valid Excel file with complete payment records</li>
+            </ol>
+            <p class="expected">✓ Expected: Success message with checkmark showing record count and player count</p>
+            <p class="expected">✓ Expected: Message auto-hides after 5 seconds</p>
+        </div>
+
+        <div class="test-case">
+            <h3>7. Duplicate Detection Warning</h3>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Upload an Excel file with duplicate payments (same date, amount, payer)</li>
+                <li>Choose to include or exclude duplicates</li>
+            </ol>
+            <p class="expected">✓ Expected: Modal showing duplicate groups with clear information</p>
+            <p class="expected">✓ Expected: Appropriate message after choosing include/exclude option</p>
+        </div>
+
+        <div class="test-case">
+            <h3>8. Add Plan Validation Errors</h3>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Try to add a plan without a name</li>
+                <li>Try to add a plan without a duration</li>
+                <li>Try to add a plan with duration = 0 or negative</li>
+                <li>Try to add a plan with a name that already exists</li>
+            </ol>
+            <p class="expected">✓ Expected: Specific error messages for each validation failure</p>
+        </div>
+
+        <div class="test-case">
+            <h3>9. Add Plan Success Message</h3>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Add a valid membership plan</li>
+            </ol>
+            <p class="expected">✓ Expected: Success message with checkmark showing plan name and duration</p>
+        </div>
+
+        <div class="test-case">
+            <h3>10. Delete Plan Error</h3>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Upload a file with payment records</li>
+                <li>Try to delete a plan that's being used by the records</li>
+            </ol>
+            <p class="expected">✓ Expected: Error message explaining the plan is in use</p>
+        </div>
+
+        <div class="test-case">
+            <h3>11. Export Loading Indicator</h3>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Upload a file and analyze data</li>
+                <li>Click "Export to Excel"</li>
+            </ol>
+            <p class="expected">✓ Expected: Loading message "Generating Excel file..." appears briefly</p>
+            <p class="expected">✓ Expected: Success message after export completes</p>
+        </div>
+
+        <div class="test-case">
+            <h3>12. Export with No Data Warning</h3>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Without uploading any file, try to export (button should be disabled)</li>
+                <li>Upload a file, apply a filter that shows 0 results, try to export</li>
+            </ol>
+            <p class="expected">✓ Expected: Warning message about no data to export</p>
+        </div>
+
+        <div class="test-case">
+            <h3>13. Large File Warning</h3>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Upload an Excel file larger than 10MB (if available)</li>
+            </ol>
+            <p class="expected">✓ Expected: Warning message about large file size before processing</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Application Under Test</h2>
+        <button onclick="document.getElementById('appFrame').src = 'index.html'">Reload Application</button>
+        <iframe id="appFrame" src="index.html"></iframe>
+    </div>
+
+    <div class="test-section">
+        <h2>✅ Manual Verification Checklist</h2>
+        <p>After testing, verify the following requirements are met:</p>
+        <ul>
+            <li>✓ User-friendly error messages displayed for all error scenarios (Req 1.3, 1.4)</li>
+            <li>✓ Loading indicators shown during file processing (visual feedback)</li>
+            <li>✓ Warnings displayed for incomplete records (Req 2.6)</li>
+            <li>✓ Warnings displayed for unknown membership plans (Req 11.5)</li>
+            <li>✓ Success messages shown for completed operations (Req 1.5)</li>
+            <li>✓ All messages are clear, specific, and actionable</li>
+            <li>✓ Error messages use ❌ icon, warnings use ⚠️ icon, success uses ✓</li>
+            <li>✓ Success messages auto-hide after 5 seconds</li>
+            <li>✓ Loading spinner animates smoothly</li>
+        </ul>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 12.1 - Excel Export Test</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #667eea; }
+        h2 { color: #764ba2; margin-top: 0; }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .pass { background-color: #d4edda; color: #155724; }
+        .fail { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #e7f3ff; color: #0066cc; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #667eea;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background-color: #5568d3; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th { background-color: #f8f9fa; color: #667eea; }
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-active { background-color: #d4edda; color: #155724; }
+        .status-expiring_soon { background-color: #fff3cd; color: #856404; }
+        .status-lapsed { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Task 12.1 - Excel Export Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Setup</h2>
+        <p>This test verifies the Excel export functionality:</p>
+        <ul>
+            <li>Export button generates Excel file</li>
+            <li>All visible columns are included</li>
+            <li>Active filters are respected</li>
+            <li>File download is triggered</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>Sample Data</h2>
+        <div id="sampleDataDisplay"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Export Tests</h2>
+        <button onclick="testExportAllMembers()">Test: Export All Members</button>
+        <button onclick="testExportActiveOnly()">Test: Export Active Only</button>
+        <button onclick="testExportLapsedOnly()">Test: Export Lapsed Only</button>
+        <button onclick="testExportExpiringSoon()">Test: Export Expiring Soon</button>
+        <button onclick="testExportEmptyData()">Test: Export Empty Data</button>
+        <div id="exportTestResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Verification Tests</h2>
+        <button onclick="runAllVerificationTests()">Run All Verification Tests</button>
+        <div id="verificationResults"></div>
+    </div>
+
+    <script>
+        // Mock app state and functions
+        const appState = {
+            players: [],
+            currentFilter: 'all',
+            currentSort: { column: 'playerName', direction: 'asc' }
+        };
+
+        // Create sample data
+        function createSampleData() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            return [
+                {
+                    playerName: 'John Smith',
+                    guardianName: 'Mary Smith',
+                    membershipPlan: 'Monthly',
+                    lastPaymentDate: new Date(today.getTime() - 10 * 24 * 60 * 60 * 1000),
+                    lastPaymentAmount: 100.00,
+                    expiryDate: new Date(today.getTime() + 20 * 24 * 60 * 60 * 1000),
+                    status: 'active',
+                    daysUntilExpiry: 20,
+                    totalPayments: 3,
+                    totalAmountPaid: 300.00,
+                    paymentHistory: []
+                },
+                {
+                    playerName: 'Jane Doe',
+                    guardianName: 'Bob Doe',
+                    membershipPlan: 'Quarterly',
+                    lastPaymentDate: new Date(today.getTime() - 85 * 24 * 60 * 60 * 1000),
+                    lastPaymentAmount: 250.00,
+                    expiryDate: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000),
+                    status: 'expiring_soon',
+                    daysUntilExpiry: 5,
+                    totalPayments: 2,
+                    totalAmountPaid: 500.00,
+                    paymentHistory: []
+                },
+                {
+                    playerName: 'Tom Wilson',
+                    guardianName: 'Sarah Wilson',
+                    membershipPlan: 'Annual',
+                    lastPaymentDate: new Date(today.getTime() - 400 * 24 * 60 * 60 * 1000),
+                    lastPaymentAmount: 1000.00,
+                    expiryDate: new Date(today.getTime() - 35 * 24 * 60 * 60 * 1000),
+                    status: 'lapsed',
+                    daysUntilExpiry: -35,
+                    totalPayments: 1,
+                    totalAmountPaid: 1000.00,
+                    paymentHistory: []
+                },
+                {
+                    playerName: 'Alice Brown',
+                    guardianName: 'Mike Brown',
+                    membershipPlan: 'Monthly',
+                    lastPaymentDate: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000),
+                    lastPaymentAmount: 100.00,
+                    expiryDate: new Date(today.getTime() + 25 * 24 * 60 * 60 * 1000),
+                    status: 'active',
+                    daysUntilExpiry: 25,
+                    totalPayments: 5,
+                    totalAmountPaid: 500.00,
+                    paymentHistory: []
+                }
+            ];
+        }
+
+        // Initialize sample data
+        appState.players = createSampleData();
+
+        // Display sample data
+        function displaySampleData() {
+            const display = document.getElementById('sampleDataDisplay');
+            const html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Player Name</th>
+                            <th>Guardian Name</th>
+                            <th>Plan</th>
+                            <th>Status</th>
+                            <th>Days Until Expiry</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${appState.players.map(p => `
+                            <tr>
+                                <td>${p.playerName}</td>
+                                <td>${p.guardianName}</td>
+                                <td>${p.membershipPlan}</td>
+                                <td><span class="status-badge status-${p.status}">${formatStatus(p.status)}</span></td>
+                                <td>${p.daysUntilExpiry}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            display.innerHTML = html;
+        }
+
+        // Helper functions from app.js
+        function formatDate(date) {
+            if (!date) return 'N/A';
+            if (!(date instanceof Date)) date = new Date(date);
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        function formatStatus(status) {
+            return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function getFilteredPlayers() {
+            if (appState.currentFilter === 'all') {
+                return appState.players;
+            }
+            return appState.players.filter(player => player.status === appState.currentFilter);
+        }
+
+        function sortPlayers(players) {
+            const { column, direction } = appState.currentSort;
+            const multiplier = direction === 'asc' ? 1 : -1;
+            
+            return [...players].sort((a, b) => {
+                let aVal = a[column];
+                let bVal = b[column];
+                
+                if (aVal instanceof Date && bVal instanceof Date) {
+                    return (aVal - bVal) * multiplier;
+                }
+                
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    return (aVal - bVal) * multiplier;
+                }
+                
+                return String(aVal).localeCompare(String(bVal)) * multiplier;
+            });
+        }
+
+        // Export functions from app.js
+        function generateExport(players, filter) {
+            const worksheetData = createWorksheetData(players);
+            const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+            
+            worksheet['!cols'] = [
+                { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 18 },
+                { wch: 18 }, { wch: 15 }, { wch: 15 }, { wch: 18 }
+            ];
+            
+            const workbook = XLSX.utils.book_new();
+            const sheetName = filter === 'all' ? 'All Members' : formatStatus(filter);
+            XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+            
+            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            return new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        }
+
+        function createWorksheetData(players) {
+            const headers = [
+                'Player Name', 'Guardian Name', 'Membership Plan',
+                'Last Payment Date', 'Last Payment Amount', 'Expiry Date',
+                'Status', 'Days Until Expiry'
+            ];
+            
+            const rows = players.map(player => [
+                player.playerName,
+                player.guardianName,
+                player.membershipPlan,
+                formatDate(player.lastPaymentDate),
+                player.lastPaymentAmount.toFixed(2),
+                player.expiryDate ? formatDate(player.expiryDate) : 'Unknown',
+                formatStatus(player.status),
+                player.expiryDate ? player.daysUntilExpiry : 'N/A'
+            ]);
+            
+            return [headers, ...rows];
+        }
+
+        function triggerDownload(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // Test functions
+        function testExportAllMembers() {
+            appState.currentFilter = 'all';
+            const filteredPlayers = getFilteredPlayers();
+            const sortedPlayers = sortPlayers(filteredPlayers);
+            
+            const blob = generateExport(sortedPlayers, appState.currentFilter);
+            const filename = `test-export-all-${Date.now()}.xlsx`;
+            triggerDownload(blob, filename);
+            
+            showTestResult('exportTestResults', 
+                `✓ Exported ${sortedPlayers.length} members (All)`, 'pass');
+        }
+
+        function testExportActiveOnly() {
+            appState.currentFilter = 'active';
+            const filteredPlayers = getFilteredPlayers();
+            const sortedPlayers = sortPlayers(filteredPlayers);
+            
+            const blob = generateExport(sortedPlayers, appState.currentFilter);
+            const filename = `test-export-active-${Date.now()}.xlsx`;
+            triggerDownload(blob, filename);
+            
+            showTestResult('exportTestResults', 
+                `✓ Exported ${sortedPlayers.length} members (Active only)`, 'pass');
+        }
+
+        function testExportLapsedOnly() {
+            appState.currentFilter = 'lapsed';
+            const filteredPlayers = getFilteredPlayers();
+            const sortedPlayers = sortPlayers(filteredPlayers);
+            
+            const blob = generateExport(sortedPlayers, appState.currentFilter);
+            const filename = `test-export-lapsed-${Date.now()}.xlsx`;
+            triggerDownload(blob, filename);
+            
+            showTestResult('exportTestResults', 
+                `✓ Exported ${sortedPlayers.length} members (Lapsed only)`, 'pass');
+        }
+
+        function testExportExpiringSoon() {
+            appState.currentFilter = 'expiring_soon';
+            const filteredPlayers = getFilteredPlayers();
+            const sortedPlayers = sortPlayers(filteredPlayers);
+            
+            const blob = generateExport(sortedPlayers, appState.currentFilter);
+            const filename = `test-export-expiring-${Date.now()}.xlsx`;
+            triggerDownload(blob, filename);
+            
+            showTestResult('exportTestResults', 
+                `✓ Exported ${sortedPlayers.length} members (Expiring soon)`, 'pass');
+        }
+
+        function testExportEmptyData() {
+            const originalPlayers = appState.players;
+            appState.players = [];
+            appState.currentFilter = 'all';
+            
+            const filteredPlayers = getFilteredPlayers();
+            
+            if (filteredPlayers.length === 0) {
+                showTestResult('exportTestResults', 
+                    '✓ Correctly handled empty data (no export)', 'pass');
+            } else {
+                showTestResult('exportTestResults', 
+                    '✗ Failed to handle empty data', 'fail');
+            }
+            
+            appState.players = originalPlayers;
+        }
+
+        function runAllVerificationTests() {
+            const results = document.getElementById('verificationResults');
+            results.innerHTML = '<div class="test-result info">Running verification tests...</div>';
+            
+            let allPassed = true;
+            const testResults = [];
+
+            // Test 1: Verify export includes all columns
+            try {
+                appState.currentFilter = 'all';
+                const players = getFilteredPlayers();
+                const worksheetData = createWorksheetData(players);
+                
+                const expectedColumns = 8;
+                const actualColumns = worksheetData[0].length;
+                
+                if (actualColumns === expectedColumns) {
+                    testResults.push({ name: 'All columns included', passed: true });
+                } else {
+                    testResults.push({ 
+                        name: 'All columns included', 
+                        passed: false, 
+                        message: `Expected ${expectedColumns} columns, got ${actualColumns}` 
+                    });
+                    allPassed = false;
+                }
+            } catch (error) {
+                testResults.push({ name: 'All columns included', passed: false, message: error.message });
+                allPassed = false;
+            }
+
+            // Test 2: Verify filter respects active status
+            try {
+                appState.currentFilter = 'active';
+                const filtered = getFilteredPlayers();
+                const allActive = filtered.every(p => p.status === 'active');
+                
+                if (allActive && filtered.length > 0) {
+                    testResults.push({ name: 'Filter respects active status', passed: true });
+                } else {
+                    testResults.push({ 
+                        name: 'Filter respects active status', 
+                        passed: false, 
+                        message: 'Not all filtered players are active' 
+                    });
+                    allPassed = false;
+                }
+            } catch (error) {
+                testResults.push({ name: 'Filter respects active status', passed: false, message: error.message });
+                allPassed = false;
+            }
+
+            // Test 3: Verify blob generation
+            try {
+                appState.currentFilter = 'all';
+                const players = getFilteredPlayers();
+                const blob = generateExport(players, appState.currentFilter);
+                
+                if (blob instanceof Blob && blob.size > 0) {
+                    testResults.push({ name: 'Excel blob generated', passed: true });
+                } else {
+                    testResults.push({ 
+                        name: 'Excel blob generated', 
+                        passed: false, 
+                        message: 'Invalid blob or empty file' 
+                    });
+                    allPassed = false;
+                }
+            } catch (error) {
+                testResults.push({ name: 'Excel blob generated', passed: false, message: error.message });
+                allPassed = false;
+            }
+
+            // Test 4: Verify data formatting
+            try {
+                const players = appState.players;
+                const worksheetData = createWorksheetData(players);
+                
+                // Check that amounts are formatted with 2 decimals
+                const amountColumn = 4; // Last Payment Amount
+                const firstDataRow = worksheetData[1];
+                const amount = firstDataRow[amountColumn];
+                
+                if (amount.match(/^\d+\.\d{2}$/)) {
+                    testResults.push({ name: 'Amount formatting correct', passed: true });
+                } else {
+                    testResults.push({ 
+                        name: 'Amount formatting correct', 
+                        passed: false, 
+                        message: `Amount not formatted correctly: ${amount}` 
+                    });
+                    allPassed = false;
+                }
+            } catch (error) {
+                testResults.push({ name: 'Amount formatting correct', passed: false, message: error.message });
+                allPassed = false;
+            }
+
+            // Test 5: Verify sorting is applied
+            try {
+                appState.currentFilter = 'all';
+                appState.currentSort = { column: 'playerName', direction: 'asc' };
+                const sorted = sortPlayers(getFilteredPlayers());
+                
+                const isSorted = sorted.every((player, i) => {
+                    if (i === 0) return true;
+                    return player.playerName >= sorted[i - 1].playerName;
+                });
+                
+                if (isSorted) {
+                    testResults.push({ name: 'Sorting applied correctly', passed: true });
+                } else {
+                    testResults.push({ 
+                        name: 'Sorting applied correctly', 
+                        passed: false, 
+                        message: 'Players not sorted correctly' 
+                    });
+                    allPassed = false;
+                }
+            } catch (error) {
+                testResults.push({ name: 'Sorting applied correctly', passed: false, message: error.message });
+                allPassed = false;
+            }
+
+            // Display results
+            const html = testResults.map(result => {
+                const className = result.passed ? 'pass' : 'fail';
+                const icon = result.passed ? '✓' : '✗';
+                const message = result.message ? ` - ${result.message}` : '';
+                return `<div class="test-result ${className}">${icon} ${result.name}${message}</div>`;
+            }).join('');
+            
+            const summary = allPassed 
+                ? '<div class="test-result pass">✓ All verification tests passed!</div>'
+                : '<div class="test-result fail">✗ Some verification tests failed</div>';
+            
+            results.innerHTML = summary + html;
+        }
+
+        function showTestResult(containerId, message, type) {
+            const container = document.getElementById(containerId);
+            const result = document.createElement('div');
+            result.className = `test-result ${type}`;
+            result.textContent = message;
+            container.appendChild(result);
+        }
+
+        // Initialize display
+        displaySampleData();
+    </script>
+</body>
+</html>

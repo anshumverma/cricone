@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Record Validation Tests - Task 3.2</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .pass { color: green; font-weight: bold; }
+        .fail { color: red; font-weight: bold; }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f5f5f5;
+            border-left: 3px solid #ddd;
+        }
+        .test-result.pass { border-left-color: green; }
+        .test-result.fail { border-left-color: red; }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .summary {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Payment Record Validation Tests - Task 3.2</h1>
+    <p><strong>Requirements:</strong> 2.6 - Flag incomplete records with isComplete property</p>
+    
+    <div class="test-section">
+        <h2>Unit Tests</h2>
+        <button onclick="runUnitTests()">Run Unit Tests</button>
+        <div id="unitTestResults"></div>
+    </div>
+
+    <script>
+        // Copy validation function from app.js
+        function validateRecord(record) {
+            return !!(
+                record.payerName &&
+                record.paymentAmount > 0 &&
+                record.paymentDate &&
+                record.membershipPlan
+            );
+        }
+
+        function runUnitTests() {
+            const resultsDiv = document.getElementById('unitTestResults');
+            const results = [];
+            let passed = 0;
+            let failed = 0;
+
+            // Test 1: Complete record with all required fields
+            const completeRecord = {
+                payerName: 'John Doe',
+                playerName: 'Jane Doe',
+                paymentAmount: 100,
+                paymentDate: new Date('2024-01-15'),
+                membershipPlan: 'Monthly',
+                isComplete: false
+            };
+            completeRecord.isComplete = validateRecord(completeRecord);
+            const test1 = completeRecord.isComplete === true;
+            results.push({
+                name: 'Test 1: Complete record with all required fields',
+                passed: test1,
+                details: `Expected: true, Got: ${completeRecord.isComplete}`
+            });
+            test1 ? passed++ : failed++;
+
+            // Test 2: Missing payer name
+            const missingPayer = {
+                payerName: null,
+                playerName: 'Jane Doe',
+                paymentAmount: 100,
+                paymentDate: new Date('2024-01-15'),
+                membershipPlan: 'Monthly',
+                isComplete: false
+            };
+            missingPayer.isComplete = validateRecord(missingPayer);
+            const test2 = missingPayer.isComplete === false;
+            results.push({
+                name: 'Test 2: Missing payer name should be incomplete',
+                passed: test2,
+                details: `Expected: false, Got: ${missingPayer.isComplete}`
+            });
+            test2 ? passed++ : failed++;
+
+            // Test 3: Missing payment amount
+            const missingAmount = {
+                payerName: 'John Doe',
+                playerName: 'Jane Doe',
+                paymentAmount: 0,
+                paymentDate: new Date('2024-01-15'),
+                membershipPlan: 'Monthly',
+                isComplete: false
+            };
+            missingAmount.isComplete = validateRecord(missingAmount);
+            const test3 = missingAmount.isComplete === false;
+            results.push({
+                name: 'Test 3: Zero payment amount should be incomplete',
+                passed: test3,
+                details: `Expected: false, Got: ${missingAmount.isComplete}`
+            });
+            test3 ? passed++ : failed++;
+
+            // Test 4: Missing payment date
+            const missingDate = {
+                payerName: 'John Doe',
+                playerName: 'Jane Doe',
+                paymentAmount: 100,
+                paymentDate: null,
+                membershipPlan: 'Monthly',
+                isComplete: false
+            };
+            missingDate.isComplete = validateRecord(missingDate);
+            const test4 = missingDate.isComplete === false;
+            results.push({
+                name: 'Test 4: Missing payment date should be incomplete',
+                passed: test4,
+                details: `Expected: false, Got: ${missingDate.isComplete}`
+            });
+            test4 ? passed++ : failed++;
+
+            // Test 5: Missing membership plan
+            const missingPlan = {
+                payerName: 'John Doe',
+                playerName: 'Jane Doe',
+                paymentAmount: 100,
+                paymentDate: new Date('2024-01-15'),
+                membershipPlan: null,
+                isComplete: false
+            };
+            missingPlan.isComplete = validateRecord(missingPlan);
+            const test5 = missingPlan.isComplete === false;
+            results.push({
+                name: 'Test 5: Missing membership plan should be incomplete',
+                passed: test5,
+                details: `Expected: false, Got: ${missingPlan.isComplete}`
+            });
+            test5 ? passed++ : failed++;
+
+            // Test 6: Empty string payer name
+            const emptyPayer = {
+                payerName: '',
+                playerName: 'Jane Doe',
+                paymentAmount: 100,
+                paymentDate: new Date('2024-01-15'),
+                membershipPlan: 'Monthly',
+                isComplete: false
+            };
+            emptyPayer.isComplete = validateRecord(emptyPayer);
+            const test6 = emptyPayer.isComplete === false;
+            results.push({
+                name: 'Test 6: Empty string payer name should be incomplete',
+                passed: test6,
+                details: `Expected: false, Got: ${emptyPayer.isComplete}`
+            });
+            test6 ? passed++ : failed++;
+
+            // Test 7: Negative payment amount
+            const negativeAmount = {
+                payerName: 'John Doe',
+                playerName: 'Jane Doe',
+                paymentAmount: -50,
+                paymentDate: new Date('2024-01-15'),
+                membershipPlan: 'Monthly',
+                isComplete: false
+            };
+            negativeAmount.isComplete = validateRecord(negativeAmount);
+            const test7 = negativeAmount.isComplete === false;
+            results.push({
+                name: 'Test 7: Negative payment amount should be incomplete',
+                passed: test7,
+                details: `Expected: false, Got: ${negativeAmount.isComplete}`
+            });
+            test7 ? passed++ : failed++;
+
+            // Test 8: Empty string membership plan
+            const emptyPlan = {
+                payerName: 'John Doe',
+                playerName: 'Jane Doe',
+                paymentAmount: 100,
+                paymentDate: new Date('2024-01-15'),
+                membershipPlan: '',
+                isComplete: false
+            };
+            emptyPlan.isComplete = validateRecord(emptyPlan);
+            const test8 = emptyPlan.isComplete === false;
+            results.push({
+                name: 'Test 8: Empty string membership plan should be incomplete',
+                passed: test8,
+                details: `Expected: false, Got: ${emptyPlan.isComplete}`
+            });
+            test8 ? passed++ : failed++;
+
+            // Test 9: Player name is optional (should still be complete)
+            const noPlayerName = {
+                payerName: 'John Doe',
+                playerName: null,
+                paymentAmount: 100,
+                paymentDate: new Date('2024-01-15'),
+                membershipPlan: 'Monthly',
+                isComplete: false
+            };
+            noPlayerName.isComplete = validateRecord(noPlayerName);
+            const test9 = noPlayerName.isComplete === true;
+            results.push({
+                name: 'Test 9: Player name is optional - record should be complete',
+                passed: test9,
+                details: `Expected: true, Got: ${noPlayerName.isComplete}`
+            });
+            test9 ? passed++ : failed++;
+
+            // Test 10: Multiple missing fields
+            const multipleMissing = {
+                payerName: null,
+                playerName: 'Jane Doe',
+                paymentAmount: 0,
+                paymentDate: null,
+                membershipPlan: null,
+                isComplete: false
+            };
+            multipleMissing.isComplete = validateRecord(multipleMissing);
+            const test10 = multipleMissing.isComplete === false;
+            results.push({
+                name: 'Test 10: Multiple missing fields should be incomplete',
+                passed: test10,
+                details: `Expected: false, Got: ${multipleMissing.isComplete}`
+            });
+            test10 ? passed++ : failed++;
+
+            // Test 11: Whitespace-only payer name
+            const whitespacePayer = {
+                payerName: '   ',
+                playerName: 'Jane Doe',
+                paymentAmount: 100,
+                paymentDate: new Date('2024-01-15'),
+                membershipPlan: 'Monthly',
+                isComplete: false
+            };
+            whitespacePayer.isComplete = validateRecord(whitespacePayer);
+            const test11 = whitespacePayer.isComplete === true; // Note: current implementation doesn't trim
+            results.push({
+                name: 'Test 11: Whitespace-only payer name (current behavior)',
+                passed: test11,
+                details: `Expected: true (truthy check), Got: ${whitespacePayer.isComplete}`
+            });
+            test11 ? passed++ : failed++;
+
+            // Test 12: Very small positive amount
+            const smallAmount = {
+                payerName: 'John Doe',
+                playerName: 'Jane Doe',
+                paymentAmount: 0.01,
+                paymentDate: new Date('2024-01-15'),
+                membershipPlan: 'Monthly',
+                isComplete: false
+            };
+            smallAmount.isComplete = validateRecord(smallAmount);
+            const test12 = smallAmount.isComplete === true;
+            results.push({
+                name: 'Test 12: Very small positive amount (0.01) should be complete',
+                passed: test12,
+                details: `Expected: true, Got: ${smallAmount.isComplete}`
+            });
+            test12 ? passed++ : failed++;
+
+            // Test 13: Large payment amount
+            const largeAmount = {
+                payerName: 'John Doe',
+                playerName: 'Jane Doe',
+                paymentAmount: 999999.99,
+                paymentDate: new Date('2024-01-15'),
+                membershipPlan: 'Annual',
+                isComplete: false
+            };
+            largeAmount.isComplete = validateRecord(largeAmount);
+            const test13 = largeAmount.isComplete === true;
+            results.push({
+                name: 'Test 13: Large payment amount should be complete',
+                passed: test13,
+                details: `Expected: true, Got: ${largeAmount.isComplete}`
+            });
+            test13 ? passed++ : failed++;
+
+            // Test 14: Invalid date object
+            const invalidDate = {
+                payerName: 'John Doe',
+                playerName: 'Jane Doe',
+                paymentAmount: 100,
+                paymentDate: new Date('invalid'),
+                membershipPlan: 'Monthly',
+                isComplete: false
+            };
+            invalidDate.isComplete = validateRecord(invalidDate);
+            const test14 = invalidDate.isComplete === true; // Invalid Date is still truthy
+            results.push({
+                name: 'Test 14: Invalid Date object (current behavior - truthy)',
+                passed: test14,
+                details: `Expected: true (truthy check), Got: ${invalidDate.isComplete}`
+            });
+            test14 ? passed++ : failed++;
+
+            // Display results
+            const summaryHtml = `
+                <div class="summary">
+                    Total Tests: ${results.length} | 
+                    <span class="pass">Passed: ${passed}</span> | 
+                    <span class="fail">Failed: ${failed}</span>
+                </div>
+            `;
+
+            const resultsHtml = results.map(result => `
+                <div class="test-result ${result.passed ? 'pass' : 'fail'}">
+                    <strong>${result.name}</strong>: ${result.passed ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>'}
+                    <br><small>${result.details}</small>
+                </div>
+            `).join('');
+
+            resultsDiv.innerHTML = summaryHtml + resultsHtml;
+        }
+    </script>
+</body>
+</html>

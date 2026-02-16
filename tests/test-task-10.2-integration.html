@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 10.2 Integration Test - Filtering Functionality</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 { color: #667eea; }
+        h2 { color: #764ba2; margin-top: 0; }
+        .test-result {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+        .filter-btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: 2px solid #667eea;
+            background-color: white;
+            color: #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .filter-btn.active {
+            background-color: #667eea;
+            color: white;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        th {
+            background-color: #f8f9fa;
+            color: #667eea;
+            font-weight: 600;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-active { background-color: #d4edda; color: #155724; }
+        .status-expiring_soon { background-color: #fff3cd; color: #856404; }
+        .status-lapsed { background-color: #f8d7da; color: #721c24; }
+        .summary {
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Task 10.2 Integration Test: Filtering Functionality</h1>
+    
+    <div class="test-container">
+        <h2>Requirements Being Tested</h2>
+        <ul>
+            <li><strong>Requirement 6.1:</strong> Filter to show only active members</li>
+            <li><strong>Requirement 6.2:</strong> Filter to show only lapsed members</li>
+            <li><strong>Requirement 6.3:</strong> Filter to show members expiring within specified days</li>
+            <li><strong>Requirement 6.4:</strong> Display count of members in each category</li>
+        </ul>
+    </div>
+
+    <div class="test-container">
+        <h2>Test Data Setup</h2>
+        <p>Creating mock player data with various membership statuses:</p>
+        <div id="testDataInfo"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Filter Controls</h2>
+        <div id="filterControls"></div>
+        <div id="recordCount" style="margin-top: 15px; font-weight: 500; color: #666;"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Filtered Player List</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Player Name</th>
+                    <th>Guardian Name</th>
+                    <th>Membership Plan</th>
+                    <th>Status</th>
+                    <th>Days Until Expiry</th>
+                </tr>
+            </thead>
+            <tbody id="playerTableBody"></tbody>
+        </table>
+    </div>
+
+    <div class="test-container">
+        <h2>Test Results</h2>
+        <div id="testResults"></div>
+        <div id="testSummary" class="summary"></div>
+    </div>
+
+    <script>
+        // Mock application state
+        const appState = {
+            players: [],
+            currentFilter: 'all'
+        };
+
+        // Create test data
+        function createTestData() {
+            const today = new Date();
+            
+            appState.players = [
+                // Active members (expiry > 7 days)
+                {
+                    playerName: 'Alice Johnson',
+                    guardianName: 'Robert Johnson',
+                    membershipPlan: 'Annual',
+                    status: 'active',
+                    daysUntilExpiry: 180,
+                    lastPaymentDate: new Date(today.getTime() - 185 * 24 * 60 * 60 * 1000),
+                    lastPaymentAmount: 500
+                },
+                {
+                    playerName: 'Bob Smith',
+                    guardianName: 'Mary Smith',
+                    membershipPlan: 'Quarterly',
+                    status: 'active',
+                    daysUntilExpiry: 45,
+                    lastPaymentDate: new Date(today.getTime() - 45 * 24 * 60 * 60 * 1000),
+                    lastPaymentAmount: 150
+                },
+                {
+                    playerName: 'Charlie Brown',
+                    guardianName: 'Sarah Brown',
+                    membershipPlan: 'Monthly',
+                    status: 'active',
+                    daysUntilExpiry: 15,
+                    lastPaymentDate: new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000),
+                    lastPaymentAmount: 50
+                },
+                
+                // Expiring soon members (expiry <= 7 days and >= 0)
+                {
+                    playerName: 'David Lee',
+                    guardianName: 'Jennifer Lee',
+                    membershipPlan: 'Monthly',
+                    status: 'expiring_soon',
+                    daysUntilExpiry: 5,
+                    lastPaymentDate: new Date(today.getTime() - 25 * 24 * 60 * 60 * 1000),
+                    lastPaymentAmount: 50
+                },
+                {
+                    playerName: 'Emma Wilson',
+                    guardianName: 'Michael Wilson',
+                    membershipPlan: 'Monthly',
+                    status: 'expiring_soon',
+                    daysUntilExpiry: 2,
+                    lastPaymentDate: new Date(today.getTime() - 28 * 24 * 60 * 60 * 1000),
+                    lastPaymentAmount: 50
+                },
+                
+                // Lapsed members (expiry < 0)
+                {
+                    playerName: 'Frank Davis',
+                    guardianName: 'Linda Davis',
+                    membershipPlan: 'Quarterly',
+                    status: 'lapsed',
+                    daysUntilExpiry: -10,
+                    lastPaymentDate: new Date(today.getTime() - 100 * 24 * 60 * 60 * 1000),
+                    lastPaymentAmount: 150
+                },
+                {
+                    playerName: 'Grace Martinez',
+                    guardianName: 'Carlos Martinez',
+                    membershipPlan: 'Monthly',
+                    status: 'lapsed',
+                    daysUntilExpiry: -30,
+                    lastPaymentDate: new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000),
+                    lastPaymentAmount: 50
+                }
+            ];
+
+            // Display test data info
+            const counts = getCounts();
+            document.getElementById('testDataInfo').innerHTML = `
+                <ul>
+                    <li><strong>Total Players:</strong> ${counts.all}</li>
+                    <li><strong>Active:</strong> ${counts.active} (expiry > 7 days)</li>
+                    <li><strong>Expiring Soon:</strong> ${counts.expiring_soon} (expiry ≤ 7 days and ≥ 0)</li>
+                    <li><strong>Lapsed:</strong> ${counts.lapsed} (expiry < 0)</li>
+                </ul>
+            `;
+        }
+
+        // Get counts by status
+        function getCounts() {
+            return {
+                all: appState.players.length,
+                active: appState.players.filter(p => p.status === 'active').length,
+                expiring_soon: appState.players.filter(p => p.status === 'expiring_soon').length,
+                lapsed: appState.players.filter(p => p.status === 'lapsed').length
+            };
+        }
+
+        // Get filtered players
+        function getFilteredPlayers() {
+            if (appState.currentFilter === 'all') {
+                return appState.players;
+            }
+            return appState.players.filter(p => p.status === appState.currentFilter);
+        }
+
+        // Render filter buttons with counts
+        function renderFilterButtons() {
+            const counts = getCounts();
+            const filters = [
+                { key: 'all', label: 'All Members' },
+                { key: 'active', label: 'Active' },
+                { key: 'expiring_soon', label: 'Expiring Soon' },
+                { key: 'lapsed', label: 'Lapsed' }
+            ];
+
+            document.getElementById('filterControls').innerHTML = filters.map(f => 
+                `<button class="filter-btn ${appState.currentFilter === f.key ? 'active' : ''}" 
+                         onclick="handleFilterChange('${f.key}')">
+                    ${f.label} (${counts[f.key]})
+                </button>`
+            ).join('');
+        }
+
+        // Handle filter change
+        function handleFilterChange(filter) {
+            appState.currentFilter = filter;
+            renderFilterButtons();
+            renderTable();
+            updateRecordCount();
+        }
+
+        // Render player table
+        function renderTable() {
+            const tbody = document.getElementById('playerTableBody');
+            const filtered = getFilteredPlayers();
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">No members to display</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(p => `
+                <tr>
+                    <td>${p.playerName}</td>
+                    <td>${p.guardianName}</td>
+                    <td>${p.membershipPlan}</td>
+                    <td><span class="status-badge status-${p.status}">${p.status.replace('_', ' ')}</span></td>
+                    <td>${p.daysUntilExpiry}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Update record count
+        function updateRecordCount() {
+            const total = appState.players.length;
+            const filtered = getFilteredPlayers().length;
+
+            const recordCount = document.getElementById('recordCount');
+            if (appState.currentFilter === 'all') {
+                recordCount.textContent = `Showing: ${total} total members`;
+            } else {
+                recordCount.textContent = `Showing: ${filtered} of ${total} members`;
+            }
+        }
+
+        // Run comprehensive tests
+        function runTests() {
+            const results = [];
+            const counts = getCounts();
+
+            // Test 1: Verify counts are accurate (Requirement 6.4)
+            const countsCorrect = counts.all === 7 && counts.active === 3 && 
+                                  counts.expiring_soon === 2 && counts.lapsed === 2;
+            results.push({
+                name: 'Requirement 6.4: Display count for each filter category',
+                pass: countsCorrect,
+                details: countsCorrect 
+                    ? `All counts are accurate: All=${counts.all}, Active=${counts.active}, Expiring Soon=${counts.expiring_soon}, Lapsed=${counts.lapsed}`
+                    : `Count mismatch: Expected All=7, Active=3, Expiring Soon=2, Lapsed=2, but got All=${counts.all}, Active=${counts.active}, Expiring Soon=${counts.expiring_soon}, Lapsed=${counts.lapsed}`
+            });
+
+            // Test 2: Filter shows all members (baseline)
+            appState.currentFilter = 'all';
+            const allFiltered = getFilteredPlayers();
+            const allCorrect = allFiltered.length === 7;
+            results.push({
+                name: 'Filter "All": Shows all members',
+                pass: allCorrect,
+                details: allCorrect 
+                    ? `Correctly shows all 7 members`
+                    : `Expected 7 members, but got ${allFiltered.length}`
+            });
+
+            // Test 3: Filter shows only active members (Requirement 6.1)
+            appState.currentFilter = 'active';
+            const activeFiltered = getFilteredPlayers();
+            const activeCorrect = activeFiltered.length === 3 && 
+                                  activeFiltered.every(p => p.status === 'active');
+            results.push({
+                name: 'Requirement 6.1: Filter to show only active members',
+                pass: activeCorrect,
+                details: activeCorrect 
+                    ? `Correctly shows 3 active members: ${activeFiltered.map(p => p.playerName).join(', ')}`
+                    : `Expected 3 active members, but got ${activeFiltered.length} (${activeFiltered.filter(p => p.status !== 'active').length} non-active)`
+            });
+
+            // Test 4: Filter shows only lapsed members (Requirement 6.2)
+            appState.currentFilter = 'lapsed';
+            const lapsedFiltered = getFilteredPlayers();
+            const lapsedCorrect = lapsedFiltered.length === 2 && 
+                                  lapsedFiltered.every(p => p.status === 'lapsed');
+            results.push({
+                name: 'Requirement 6.2: Filter to show only lapsed members',
+                pass: lapsedCorrect,
+                details: lapsedCorrect 
+                    ? `Correctly shows 2 lapsed members: ${lapsedFiltered.map(p => p.playerName).join(', ')}`
+                    : `Expected 2 lapsed members, but got ${lapsedFiltered.length} (${lapsedFiltered.filter(p => p.status !== 'lapsed').length} non-lapsed)`
+            });
+
+            // Test 5: Filter shows only expiring soon members (Requirement 6.3)
+            appState.currentFilter = 'expiring_soon';
+            const expiringFiltered = getFilteredPlayers();
+            const expiringCorrect = expiringFiltered.length === 2 && 
+                                    expiringFiltered.every(p => p.status === 'expiring_soon');
+            results.push({
+                name: 'Requirement 6.3: Filter to show members expiring soon',
+                pass: expiringCorrect,
+                details: expiringCorrect 
+                    ? `Correctly shows 2 expiring soon members: ${expiringFiltered.map(p => p.playerName).join(', ')}`
+                    : `Expected 2 expiring soon members, but got ${expiringFiltered.length} (${expiringFiltered.filter(p => p.status !== 'expiring_soon').length} non-expiring)`
+            });
+
+            // Test 6: Verify filter buttons show counts
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const buttonsHaveCounts = Array.from(filterButtons).every(btn => {
+                const text = btn.textContent;
+                return text.includes('(') && text.includes(')');
+            });
+            results.push({
+                name: 'Filter buttons display counts',
+                pass: buttonsHaveCounts,
+                details: buttonsHaveCounts 
+                    ? 'All filter buttons show counts in format "Label (count)"'
+                    : 'Some filter buttons are missing count display'
+            });
+
+            // Test 7: Verify no cross-contamination between filters
+            appState.currentFilter = 'active';
+            const activeOnly = getFilteredPlayers();
+            const noLapsedInActive = !activeOnly.some(p => p.status === 'lapsed' || p.status === 'expiring_soon');
+            results.push({
+                name: 'Filter isolation: Active filter excludes non-active',
+                pass: noLapsedInActive,
+                details: noLapsedInActive 
+                    ? 'Active filter correctly excludes lapsed and expiring soon members'
+                    : 'Active filter incorrectly includes non-active members'
+            });
+
+            // Display results
+            const testResults = document.getElementById('testResults');
+            testResults.innerHTML = results.map(r => `
+                <div class="test-result ${r.pass ? 'test-pass' : 'test-fail'}">
+                    <strong>${r.pass ? '✓ PASS' : '✗ FAIL'}:</strong> ${r.name}<br>
+                    <small>${r.details}</small>
+                </div>
+            `).join('');
+
+            // Display summary
+            const passCount = results.filter(r => r.pass).length;
+            const totalCount = results.length;
+            const allPassed = passCount === totalCount;
+            
+            const summary = document.getElementById('testSummary');
+            summary.className = `summary ${allPassed ? 'test-pass' : 'test-fail'}`;
+            summary.innerHTML = `
+                <div style="text-align: center;">
+                    ${allPassed ? '✓' : '✗'} Test Summary: ${passCount}/${totalCount} tests passed
+                    ${allPassed ? '<br>All filtering functionality requirements are met!' : '<br>Some tests failed - review above for details'}
+                </div>
+            `;
+
+            // Reset to 'all' filter
+            appState.currentFilter = 'all';
+            renderFilterButtons();
+            renderTable();
+            updateRecordCount();
+        }
+
+        // Initialize and run tests
+        createTestData();
+        renderFilterButtons();
+        renderTable();
+        updateRecordCount();
+        runTests();
+    </script>
+</body>
+</html>

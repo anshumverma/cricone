@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Record Validation Integration Test - Task 3.2</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .complete { background-color: #d4edda; }
+        .incomplete { background-color: #f8d7da; }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .summary {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Payment Record Validation Integration Test - Task 3.2</h1>
+    <p><strong>Requirements:</strong> 2.6 - Flag incomplete records with isComplete property</p>
+    <p>This test demonstrates the validation working with realistic Excel data scenarios.</p>
+    
+    <div class="test-section">
+        <h2>Test Scenarios</h2>
+        <button onclick="testCompleteRecords()">Test 1: Complete Records</button>
+        <button onclick="testIncompleteRecords()">Test 2: Incomplete Records</button>
+        <button onclick="testMixedRecords()">Test 3: Mixed Records</button>
+        <button onclick="testEdgeCases()">Test 4: Edge Cases</button>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        // Copy functions from app.js
+        function extractPaymentRecords(worksheet) {
+            const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: null });
+            
+            if (rawData.length === 0) {
+                return [];
+            }
+            
+            const columnMapping = detectColumnMapping(Object.keys(rawData[0]));
+            
+            const paymentRecords = rawData.map(row => {
+                const record = {
+                    payerName: extractField(row, columnMapping.payerName),
+                    playerName: extractField(row, columnMapping.playerName),
+                    paymentAmount: extractAmount(row, columnMapping.paymentAmount),
+                    paymentDate: extractDate(row, columnMapping.paymentDate),
+                    membershipPlan: extractField(row, columnMapping.membershipPlan),
+                    isComplete: false,
+                    rawData: row
+                };
+                
+                record.isComplete = validateRecord(record);
+                
+                return record;
+            });
+            
+            return paymentRecords.filter(record => 
+                record.payerName || record.paymentAmount || record.paymentDate || record.membershipPlan
+            );
+        }
+
+        function detectColumnMapping(headers) {
+            const mapping = {
+                payerName: null,
+                playerName: null,
+                paymentAmount: null,
+                paymentDate: null,
+                membershipPlan: null
+            };
+            
+            const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
+            
+            const payerPatterns = ['payer name', 'name', 'donor name', 'payer', 'donor', 'guardian name', 'guardian'];
+            mapping.payerName = findMatchingHeader(normalizedHeaders, headers, payerPatterns);
+            
+            const playerPatterns = ['player name', 'student name', 'beneficiary', 'player', 'student', 'child name'];
+            mapping.playerName = findMatchingHeader(normalizedHeaders, headers, playerPatterns);
+            
+            const amountPatterns = ['amount', 'payment amount', 'total', 'price', 'payment'];
+            mapping.paymentAmount = findMatchingHeader(normalizedHeaders, headers, amountPatterns);
+            
+            const datePatterns = ['date', 'payment date', 'transaction date', 'created at', 'timestamp'];
+            mapping.paymentDate = findMatchingHeader(normalizedHeaders, headers, datePatterns);
+            
+            const planPatterns = ['campaign', 'program', 'plan', 'item', 'membership plan', 'membership', 'product'];
+            mapping.membershipPlan = findMatchingHeader(normalizedHeaders, headers, planPatterns);
+            
+            return mapping;
+        }
+
+        function findMatchingHeader(normalizedHeaders, originalHeaders, patterns) {
+            for (const pattern of patterns) {
+                const index = normalizedHeaders.findIndex(h => h.includes(pattern) || pattern.includes(h));
+                if (index !== -1) {
+                    return originalHeaders[index];
+                }
+            }
+            return null;
+        }
+
+        function extractField(row, columnName) {
+            if (!columnName || !row[columnName]) {
+                return null;
+            }
+            
+            const value = row[columnName];
+            
+            if (typeof value === 'string') {
+                return value.trim() || null;
+            }
+            
+            return value ? String(value).trim() : null;
+        }
+
+        function extractAmount(row, columnName) {
+            if (!columnName || !row[columnName]) {
+                return 0;
+            }
+            
+            let value = row[columnName];
+            
+            if (typeof value === 'string') {
+                value = value.replace(/[$€£¥,\s]/g, '');
+            }
+            
+            const amount = parseFloat(value);
+            return isNaN(amount) ? 0 : amount;
+        }
+
+        function extractDate(row, columnName) {
+            if (!columnName || !row[columnName]) {
+                return null;
+            }
+            
+            const value = row[columnName];
+            
+            if (typeof value === 'number') {
+                const excelEpoch = new Date(1900, 0, 1);
+                const date = new Date(excelEpoch.getTime() + (value - 2) * 24 * 60 * 60 * 1000);
+                return isNaN(date.getTime()) ? null : date;
+            }
+            
+            if (typeof value === 'string') {
+                const date = new Date(value);
+                return isNaN(date.getTime()) ? null : date;
+            }
+            
+            if (value instanceof Date) {
+                return isNaN(value.getTime()) ? null : value;
+            }
+            
+            return null;
+        }
+
+        function validateRecord(record) {
+            return !!(
+                record.payerName &&
+                record.paymentAmount > 0 &&
+                record.paymentDate &&
+                record.membershipPlan
+            );
+        }
+
+        // Test functions
+        function testCompleteRecords() {
+            const data = [
+                { 'Payer Name': 'John Doe', 'Amount': 100, 'Date': '2024-01-15', 'Plan': 'Monthly', 'Player Name': 'Jane Doe' },
+                { 'Payer Name': 'Alice Smith', 'Amount': 250, 'Date': '2024-01-20', 'Plan': 'Quarterly', 'Player Name': 'Bob Smith' },
+                { 'Payer Name': 'Charlie Brown', 'Amount': 1000, 'Date': '2024-01-25', 'Plan': 'Annual', 'Player Name': 'Lucy Brown' }
+            ];
+            
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const records = extractPaymentRecords(worksheet);
+            
+            displayResults('Test 1: Complete Records', records, 
+                'All records should be marked as complete (isComplete = true)');
+        }
+
+        function testIncompleteRecords() {
+            const data = [
+                { 'Payer Name': null, 'Amount': 100, 'Date': '2024-01-15', 'Plan': 'Monthly' },
+                { 'Payer Name': 'Alice Smith', 'Amount': 0, 'Date': '2024-01-20', 'Plan': 'Quarterly' },
+                { 'Payer Name': 'Charlie Brown', 'Amount': 250, 'Date': null, 'Plan': 'Annual' },
+                { 'Payer Name': 'David Lee', 'Amount': 150, 'Date': '2024-01-25', 'Plan': null }
+            ];
+            
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const records = extractPaymentRecords(worksheet);
+            
+            displayResults('Test 2: Incomplete Records', records, 
+                'All records should be marked as incomplete (isComplete = false) due to missing required fields');
+        }
+
+        function testMixedRecords() {
+            const data = [
+                { 'Payer Name': 'John Doe', 'Amount': 100, 'Date': '2024-01-15', 'Plan': 'Monthly' },
+                { 'Payer Name': null, 'Amount': 250, 'Date': '2024-01-20', 'Plan': 'Quarterly' },
+                { 'Payer Name': 'Charlie Brown', 'Amount': 1000, 'Date': '2024-01-25', 'Plan': 'Annual' },
+                { 'Payer Name': 'David Lee', 'Amount': 0, 'Date': '2024-01-30', 'Plan': 'Monthly' }
+            ];
+            
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const records = extractPaymentRecords(worksheet);
+            
+            displayResults('Test 3: Mixed Records', records, 
+                'Records 1 and 3 should be complete, records 2 and 4 should be incomplete');
+        }
+
+        function testEdgeCases() {
+            const data = [
+                { 'Payer Name': 'John Doe', 'Amount': '$100.50', 'Date': '2024-01-15', 'Plan': 'Monthly' },
+                { 'Payer Name': 'Alice Smith', 'Amount': '250,00', 'Date': 45307, 'Plan': 'Quarterly' }, // Excel date serial
+                { 'Payer Name': 'Charlie Brown', 'Amount': 0.01, 'Date': '2024-01-25', 'Plan': 'Annual' },
+                { 'Payer Name': '  Bob Lee  ', 'Amount': '  500  ', 'Date': '2024-01-30', 'Plan': '  Monthly  ' }
+            ];
+            
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const records = extractPaymentRecords(worksheet);
+            
+            displayResults('Test 4: Edge Cases', records, 
+                'All records should be complete. Tests currency symbols, Excel dates, small amounts, and whitespace handling');
+        }
+
+        function displayResults(testName, records, description) {
+            const resultsDiv = document.getElementById('testResults');
+            
+            const completeCount = records.filter(r => r.isComplete).length;
+            const incompleteCount = records.filter(r => !r.isComplete).length;
+            
+            const summaryHtml = `
+                <div class="summary">
+                    ${testName}<br>
+                    <small>${description}</small><br><br>
+                    Total Records: ${records.length} | 
+                    Complete: ${completeCount} | 
+                    Incomplete: ${incompleteCount}
+                </div>
+            `;
+            
+            const tableHtml = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Payer Name</th>
+                            <th>Player Name</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Plan</th>
+                            <th>Is Complete</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${records.map(record => `
+                            <tr class="${record.isComplete ? 'complete' : 'incomplete'}">
+                                <td>${record.payerName || '<em>null</em>'}</td>
+                                <td>${record.playerName || '<em>null</em>'}</td>
+                                <td>${record.paymentAmount || 0}</td>
+                                <td>${record.paymentDate ? record.paymentDate.toLocaleDateString() : '<em>null</em>'}</td>
+                                <td>${record.membershipPlan || '<em>null</em>'}</td>
+                                <td><strong>${record.isComplete ? '✓ Complete' : '✗ Incomplete'}</strong></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            resultsDiv.innerHTML = summaryHtml + tableHtml;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Validation Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .pass { color: green; }
+        .fail { color: red; }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <h1>File Validation Test - Task 2.1</h1>
+    
+    <div class="test-section">
+        <h2>Manual Test</h2>
+        <p>Upload files to test validation:</p>
+        <input type="file" id="testFileInput" />
+        <div id="manualTestResult" class="test-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Automated Tests</h2>
+        <div id="automatedTestResults"></div>
+        <button onclick="runTests()">Run Tests</button>
+    </div>
+
+    <script>
+        // Copy the validation function from app.js
+        function isValidExcelFile(file) {
+            if (!file || !file.name) {
+                return false;
+            }
+            
+            const fileName = file.name.toLowerCase();
+            return fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+        }
+
+        // Manual test
+        document.getElementById('testFileInput').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            const resultDiv = document.getElementById('manualTestResult');
+            
+            if (!file) {
+                resultDiv.innerHTML = 'No file selected';
+                return;
+            }
+            
+            const isValid = isValidExcelFile(file);
+            
+            if (isValid) {
+                resultDiv.innerHTML = `<span class="pass">✓ Valid Excel file: ${file.name}</span>`;
+            } else {
+                resultDiv.innerHTML = `<span class="fail">✗ Invalid file format: ${file.name}</span>`;
+            }
+        });
+
+        // Automated tests
+        function runTests() {
+            const resultsDiv = document.getElementById('automatedTestResults');
+            const results = [];
+
+            // Test 1: Valid .xlsx file
+            const xlsxFile = new File([''], 'test.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const test1 = isValidExcelFile(xlsxFile);
+            results.push(`Test 1 - Valid .xlsx file: ${test1 ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>'}`);
+
+            // Test 2: Valid .xls file
+            const xlsFile = new File([''], 'test.xls', { type: 'application/vnd.ms-excel' });
+            const test2 = isValidExcelFile(xlsFile);
+            results.push(`Test 2 - Valid .xls file: ${test2 ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>'}`);
+
+            // Test 3: Invalid .txt file
+            const txtFile = new File([''], 'test.txt', { type: 'text/plain' });
+            const test3 = !isValidExcelFile(txtFile);
+            results.push(`Test 3 - Invalid .txt file rejected: ${test3 ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>'}`);
+
+            // Test 4: Invalid .csv file
+            const csvFile = new File([''], 'test.csv', { type: 'text/csv' });
+            const test4 = !isValidExcelFile(csvFile);
+            results.push(`Test 4 - Invalid .csv file rejected: ${test4 ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>'}`);
+
+            // Test 5: Invalid .pdf file
+            const pdfFile = new File([''], 'test.pdf', { type: 'application/pdf' });
+            const test5 = !isValidExcelFile(pdfFile);
+            results.push(`Test 5 - Invalid .pdf file rejected: ${test5 ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>'}`);
+
+            // Test 6: Null file
+            const test6 = !isValidExcelFile(null);
+            results.push(`Test 6 - Null file rejected: ${test6 ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>'}`);
+
+            // Test 7: File without name
+            const test7 = !isValidExcelFile({});
+            results.push(`Test 7 - File without name rejected: ${test7 ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>'}`);
+
+            // Test 8: Case insensitive - .XLSX
+            const xlsxUpperFile = new File([''], 'test.XLSX', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const test8 = isValidExcelFile(xlsxUpperFile);
+            results.push(`Test 8 - Case insensitive .XLSX: ${test8 ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>'}`);
+
+            // Test 9: Case insensitive - .XLS
+            const xlsUpperFile = new File([''], 'test.XLS', { type: 'application/vnd.ms-excel' });
+            const test9 = isValidExcelFile(xlsUpperFile);
+            results.push(`Test 9 - Case insensitive .XLS: ${test9 ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>'}`);
+
+            // Test 10: File with .xlsx in middle of name
+            const xlsxMiddleFile = new File([''], 'test.xlsx.txt', { type: 'text/plain' });
+            const test10 = !isValidExcelFile(xlsxMiddleFile);
+            results.push(`Test 10 - .xlsx in middle rejected: ${test10 ? '<span class="pass">PASS</span>' : '<span class="fail">FAIL</span>'}`);
+
+            resultsDiv.innerHTML = results.map(r => `<div class="test-result">${r}</div>`).join('');
+        }
+    </script>
+</body>
+</html>

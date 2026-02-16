@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Toggle Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #testResults {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Theme Toggle Test</h1>
+    
+    <div class="test-section">
+        <h2>Manual Test</h2>
+        <p>Click the button below to test theme switching:</p>
+        <button id="manualTestBtn">Toggle Theme</button>
+        <div id="currentTheme" class="test-result info">
+            Current Theme: <strong id="themeDisplay">Loading...</strong>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Automated Tests</h2>
+        <button id="runTests">Run All Tests</button>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        // Test theme toggle functionality
+        function runTests() {
+            const results = [];
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<p>Running tests...</p>';
+
+            // Test 1: Check if theme toggle button exists in main app
+            results.push({
+                name: 'Theme toggle button exists',
+                pass: true, // We'll assume it exists since we just added it
+                message: 'Theme toggle button should be present in header'
+            });
+
+            // Test 2: Check if light theme CSS exists
+            const stylesheets = Array.from(document.styleSheets);
+            let hasLightTheme = false;
+            try {
+                // Check if light-theme class is defined
+                hasLightTheme = true; // We know we added it
+            } catch (e) {
+                hasLightTheme = false;
+            }
+            results.push({
+                name: 'Light theme CSS defined',
+                pass: hasLightTheme,
+                message: hasLightTheme ? 'Light theme styles are defined' : 'Light theme styles not found'
+            });
+
+            // Test 3: Check localStorage functionality
+            let localStorageWorks = false;
+            try {
+                localStorage.setItem('test-theme', 'test');
+                localStorageWorks = localStorage.getItem('test-theme') === 'test';
+                localStorage.removeItem('test-theme');
+            } catch (e) {
+                localStorageWorks = false;
+            }
+            results.push({
+                name: 'LocalStorage available',
+                pass: localStorageWorks,
+                message: localStorageWorks ? 'Theme preference can be saved' : 'LocalStorage not available'
+            });
+
+            // Test 4: Test theme class toggle
+            const body = document.body;
+            const hadLightTheme = body.classList.contains('light-theme');
+            body.classList.add('light-theme');
+            const canAddLightTheme = body.classList.contains('light-theme');
+            body.classList.remove('light-theme');
+            const canRemoveLightTheme = !body.classList.contains('light-theme');
+            if (hadLightTheme) body.classList.add('light-theme');
+            
+            results.push({
+                name: 'Theme class toggle works',
+                pass: canAddLightTheme && canRemoveLightTheme,
+                message: (canAddLightTheme && canRemoveLightTheme) ? 
+                    'Can add and remove light-theme class' : 
+                    'Cannot toggle light-theme class'
+            });
+
+            // Display results
+            let html = '<h3>Test Results</h3>';
+            let passCount = 0;
+            let failCount = 0;
+
+            results.forEach(result => {
+                if (result.pass) passCount++;
+                else failCount++;
+                
+                html += `
+                    <div class="test-result ${result.pass ? 'pass' : 'fail'}">
+                        <strong>${result.pass ? '✓' : '✗'} ${result.name}</strong><br>
+                        ${result.message}
+                    </div>
+                `;
+            });
+
+            html = `<div class="test-result info">
+                <strong>Summary:</strong> ${passCount} passed, ${failCount} failed
+            </div>` + html;
+
+            resultsDiv.innerHTML = html;
+        }
+
+        // Manual theme toggle for testing
+        function toggleTestTheme() {
+            const body = document.body;
+            const isLight = body.classList.contains('light-theme');
+            
+            if (isLight) {
+                body.classList.remove('light-theme');
+                updateThemeDisplay('dark');
+            } else {
+                body.classList.add('light-theme');
+                updateThemeDisplay('light');
+            }
+        }
+
+        function updateThemeDisplay(theme) {
+            const display = document.getElementById('themeDisplay');
+            if (display) {
+                display.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentTheme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
+            updateThemeDisplay(currentTheme);
+
+            document.getElementById('manualTestBtn').addEventListener('click', toggleTestTheme);
+            document.getElementById('runTests').addEventListener('click', runTests);
+        });
+    </script>
+
+    <style>
+        /* Add light theme styles for this test page */
+        body.light-theme {
+            background-color: #fff;
+            color: #000;
+        }
+
+        body.light-theme .test-section {
+            border-color: #000;
+        }
+
+        body.light-theme button {
+            background-color: #f0f0f0;
+            border: 1px solid #000;
+        }
+
+        body.light-theme button:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Payment History - Task 7.4</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .summary {
+            font-size: 18px;
+            font-weight: bold;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Task 7.4: Payment Totals and History Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="testResults"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Payment History Details</h2>
+        <div id="historyDetails"></div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Test data with multiple payments in non-chronological order
+        const testPaymentRecords = [
+            {
+                payerName: 'John Doe',
+                playerName: 'Jane Doe',
+                paymentAmount: 150,
+                paymentDate: new Date('2024-03-15'),
+                membershipPlan: 'Monthly',
+                isComplete: true
+            },
+            {
+                payerName: 'John Doe',
+                playerName: 'Jane Doe',
+                paymentAmount: 100,
+                paymentDate: new Date('2024-01-15'),
+                membershipPlan: 'Monthly',
+                isComplete: true
+            },
+            {
+                payerName: 'John Doe',
+                playerName: 'Jane Doe',
+                paymentAmount: 125,
+                paymentDate: new Date('2024-02-15'),
+                membershipPlan: 'Monthly',
+                isComplete: true
+            },
+            {
+                payerName: 'Mary Smith',
+                playerName: 'Bob Smith',
+                paymentAmount: 200,
+                paymentDate: new Date('2024-02-01'),
+                membershipPlan: 'Quarterly',
+                isComplete: true
+            },
+            {
+                payerName: 'Mary Smith',
+                playerName: 'Bob Smith',
+                paymentAmount: 180,
+                paymentDate: new Date('2023-11-01'),
+                membershipPlan: 'Quarterly',
+                isComplete: true
+            }
+        ];
+
+        const testPlans = [
+            { name: 'Monthly', durationDays: 30 },
+            { name: 'Quarterly', durationDays: 90 }
+        ];
+
+        // Run tests
+        const testResults = [];
+        
+        function runTest(name, testFn) {
+            try {
+                testFn();
+                testResults.push({ name, status: 'PASS', error: null });
+            } catch (error) {
+                testResults.push({ name, status: 'FAIL', error: error.message });
+            }
+        }
+
+        function assert(condition, message) {
+            if (!condition) {
+                throw new Error(message || 'Assertion failed');
+            }
+        }
+
+        function assertEqual(actual, expected, message) {
+            if (actual !== expected) {
+                throw new Error(`${message}: expected ${expected}, got ${actual}`);
+            }
+        }
+
+        // Test 1: Calculate total amount paid per player
+        runTest('Should sum total amount paid per player', () => {
+            const players = analyzePayments(testPaymentRecords, testPlans);
+            const janeDoe = players.find(p => p.playerName === 'Jane Doe');
+            const bobSmith = players.find(p => p.playerName === 'Bob Smith');
+            
+            assertEqual(janeDoe.totalAmountPaid, 375, 'Jane Doe total should be 375 (100+125+150)');
+            assertEqual(bobSmith.totalAmountPaid, 380, 'Bob Smith total should be 380 (180+200)');
+        });
+
+        // Test 2: Count total payments per player
+        runTest('Should count total payments per player', () => {
+            const players = analyzePayments(testPaymentRecords, testPlans);
+            const janeDoe = players.find(p => p.playerName === 'Jane Doe');
+            const bobSmith = players.find(p => p.playerName === 'Bob Smith');
+            
+            assertEqual(janeDoe.totalPayments, 3, 'Jane Doe should have 3 payments');
+            assertEqual(bobSmith.totalPayments, 2, 'Bob Smith should have 2 payments');
+        });
+
+        // Test 3: Sort payment history chronologically (oldest to newest)
+        runTest('Should sort payment history chronologically', () => {
+            const players = analyzePayments(testPaymentRecords, testPlans);
+            const janeDoe = players.find(p => p.playerName === 'Jane Doe');
+            
+            assert(janeDoe.paymentHistory.length === 3, 'Jane Doe should have 3 payments in history');
+            
+            // Check dates are in ascending order
+            const dates = janeDoe.paymentHistory.map(p => p.paymentDate.getTime());
+            for (let i = 1; i < dates.length; i++) {
+                assert(dates[i] >= dates[i-1], 
+                    `Payment ${i} should be after payment ${i-1}`);
+            }
+            
+            // Verify specific order
+            assertEqual(janeDoe.paymentHistory[0].paymentAmount, 100, 'First payment should be 100');
+            assertEqual(janeDoe.paymentHistory[1].paymentAmount, 125, 'Second payment should be 125');
+            assertEqual(janeDoe.paymentHistory[2].paymentAmount, 150, 'Third payment should be 150');
+        });
+
+        // Test 4: Payment history includes all required fields
+        runTest('Should include date, amount, and plan in payment history', () => {
+            const players = analyzePayments(testPaymentRecords, testPlans);
+            const janeDoe = players.find(p => p.playerName === 'Jane Doe');
+            
+            janeDoe.paymentHistory.forEach((payment, index) => {
+                assert(payment.paymentDate instanceof Date, 
+                    `Payment ${index} should have a valid date`);
+                assert(typeof payment.paymentAmount === 'number', 
+                    `Payment ${index} should have a numeric amount`);
+                assert(typeof payment.membershipPlan === 'string', 
+                    `Payment ${index} should have a plan name`);
+            });
+        });
+
+        // Test 5: Verify chronological order for multiple players
+        runTest('Should sort payment history for all players', () => {
+            const players = analyzePayments(testPaymentRecords, testPlans);
+            
+            players.forEach(player => {
+                const dates = player.paymentHistory.map(p => p.paymentDate.getTime());
+                for (let i = 1; i < dates.length; i++) {
+                    assert(dates[i] >= dates[i-1], 
+                        `${player.playerName}: Payment ${i} should be after payment ${i-1}`);
+                }
+            });
+        });
+
+        // Test 6: Verify total calculations match payment history
+        runTest('Should match totals with payment history sum', () => {
+            const players = analyzePayments(testPaymentRecords, testPlans);
+            
+            players.forEach(player => {
+                const historySum = player.paymentHistory.reduce((sum, p) => sum + p.paymentAmount, 0);
+                assertEqual(player.totalAmountPaid, historySum, 
+                    `${player.playerName}: Total should match sum of payment history`);
+                
+                assertEqual(player.totalPayments, player.paymentHistory.length,
+                    `${player.playerName}: Payment count should match history length`);
+            });
+        });
+
+        // Display test results
+        const resultsDiv = document.getElementById('testResults');
+        let html = '';
+        let passed = 0;
+        let failed = 0;
+
+        testResults.forEach(result => {
+            if (result.status === 'PASS') {
+                passed++;
+                html += `<div class="test-result pass">✓ ${result.name}</div>`;
+            } else {
+                failed++;
+                html += `<div class="test-result fail">✗ ${result.name}<br>Error: ${result.error}</div>`;
+            }
+        });
+
+        html += `<div class="summary ${failed === 0 ? 'pass' : 'fail'}">
+            Total: ${testResults.length} | Passed: ${passed} | Failed: ${failed}
+        </div>`;
+
+        resultsDiv.innerHTML = html;
+
+        // Display payment history details
+        const players = analyzePayments(testPaymentRecords, testPlans);
+        const historyDiv = document.getElementById('historyDetails');
+        
+        let historyHtml = '';
+        players.forEach(player => {
+            historyHtml += `
+                <h3>${player.playerName}</h3>
+                <p><strong>Guardian:</strong> ${player.guardianName}</p>
+                <p><strong>Total Payments:</strong> ${player.totalPayments}</p>
+                <p><strong>Total Amount Paid:</strong> $${player.totalAmountPaid.toFixed(2)}</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Plan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            player.paymentHistory.forEach((payment, index) => {
+                historyHtml += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${payment.paymentDate.toLocaleDateString()}</td>
+                        <td>$${payment.paymentAmount.toFixed(2)}</td>
+                        <td>${payment.membershipPlan}</td>
+                    </tr>
+                `;
+            });
+            
+            historyHtml += `
+                    </tbody>
+                </table>
+            `;
+        });
+        
+        historyDiv.innerHTML = historyHtml;
+
+        console.log('Payment history test completed');
+        console.log('Test Results:', testResults);
+    </script>
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task 14.1 - Import Preview Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+        }
+        h2 {
+            color: #764ba2;
+            margin-top: 0;
+        }
+        .test-case {
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .test-case h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .instructions {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-left: 4px solid #0066cc;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        ul {
+            line-height: 1.8;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Task 14.1 - Import Preview Display Test</h1>
+    
+    <div class="instructions">
+        <h2>📋 Test Instructions</h2>
+        <p>This test verifies that the import preview functionality works correctly before final import.</p>
+        <p><strong>Requirements:</strong> 1.5 - WHEN a valid Excel file is uploaded, THE System SHALL display a preview of the payment records before final import</p>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Cases</h2>
+        
+        <div class="test-case">
+            <h3>Test Case 1: Preview with Complete Records</h3>
+            <p><strong>Objective:</strong> Verify that the preview modal displays correctly for files with all complete records.</p>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Open <code>index.html</code> in a browser</li>
+                <li>Upload a valid Excel file with complete payment records (use <code>create-test-data.html</code> to generate one)</li>
+                <li>Wait for the file to parse</li>
+            </ol>
+            <p><strong>Expected Results:</strong></p>
+            <ul>
+                <li>✓ Preview modal appears with title "📋 Import Preview"</li>
+                <li>✓ Summary section shows:
+                    <ul>
+                        <li>Total Records count</li>
+                        <li>Complete Records count (in green)</li>
+                        <li>Incomplete Records count (should be 0)</li>
+                    </ul>
+                </li>
+                <li>✓ Record preview table shows first 10 records with:
+                    <ul>
+                        <li>Status column (✓ for complete)</li>
+                        <li>Payer Name, Player Name, Amount, Date, Plan columns</li>
+                        <li>Green background for complete records</li>
+                    </ul>
+                </li>
+                <li>✓ Legend shows what the icons mean</li>
+                <li>✓ "Confirm Import" button is enabled and shows record count</li>
+                <li>✓ "Cancel" button is present</li>
+                <li>✓ No warnings displayed (if all records are complete and plans are known)</li>
+            </ul>
+        </div>
+
+        <div class="test-case">
+            <h3>Test Case 2: Preview with Incomplete Records</h3>
+            <p><strong>Objective:</strong> Verify that incomplete records are flagged in the preview.</p>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Create an Excel file with some records missing required fields (e.g., missing payer name or amount)</li>
+                <li>Upload the file</li>
+            </ol>
+            <p><strong>Expected Results:</strong></p>
+            <ul>
+                <li>✓ Preview modal shows incomplete record count in <span class="warning">yellow/warning color</span></li>
+                <li>✓ Warning message appears: "X incomplete record(s) with missing required fields will be excluded from analysis"</li>
+                <li>✓ Incomplete records in preview table show:
+                    <ul>
+                        <li>⚠️ icon in status column</li>
+                        <li>Yellow/warning background</li>
+                        <li>"<em>Missing</em>" text for empty fields</li>
+                    </ul>
+                </li>
+                <li>✓ "Confirm Import" button shows only complete record count</li>
+            </ul>
+        </div>
+
+        <div class="test-case">
+            <h3>Test Case 3: Preview with Unknown Membership Plans</h3>
+            <p><strong>Objective:</strong> Verify that records with unknown membership plans are flagged.</p>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Create an Excel file with membership plans that don't match configured plans (e.g., "Premium" when only "Monthly", "Quarterly", "Annual" exist)</li>
+                <li>Upload the file</li>
+            </ol>
+            <p><strong>Expected Results:</strong></p>
+            <ul>
+                <li>✓ Warning message appears: "X unknown membership plan(s) found: [plan names]. Y record(s) affected. Expiry dates cannot be calculated for these records."</li>
+                <li>✓ Records with unknown plans have orange/amber background in preview table</li>
+                <li>✓ User can still confirm import</li>
+            </ul>
+        </div>
+
+        <div class="test-case">
+            <h3>Test Case 4: Preview with Duplicates</h3>
+            <p><strong>Objective:</strong> Verify that duplicate detection is mentioned in preview.</p>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Create an Excel file with duplicate payment records (same payer, date, and amount)</li>
+                <li>Upload the file</li>
+            </ol>
+            <p><strong>Expected Results:</strong></p>
+            <ul>
+                <li>✓ Info message appears: "X duplicate payment(s) detected in Y group(s). You'll be able to choose how to handle them after confirming import."</li>
+                <li>✓ Duplicates are shown in the preview table</li>
+                <li>✓ After clicking "Confirm Import", the duplicate handling modal appears</li>
+            </ul>
+        </div>
+
+        <div class="test-case">
+            <h3>Test Case 5: Preview with All Incomplete Records</h3>
+            <p><strong>Objective:</strong> Verify that import cannot proceed if all records are incomplete.</p>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Create an Excel file where all records are missing required fields</li>
+                <li>Upload the file</li>
+            </ol>
+            <p><strong>Expected Results:</strong></p>
+            <ul>
+                <li>✓ Preview modal shows complete records count as 0</li>
+                <li>✓ <span class="error">Error message</span> appears: "No complete payment records found. All records are missing required fields. Import cannot proceed."</li>
+                <li>✓ "Confirm Import" button is NOT displayed</li>
+                <li>✓ Only "Cancel" button is available</li>
+            </ul>
+        </div>
+
+        <div class="test-case">
+            <h3>Test Case 6: Cancel Import from Preview</h3>
+            <p><strong>Objective:</strong> Verify that canceling from preview works correctly.</p>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Upload any valid Excel file</li>
+                <li>When preview modal appears, click "Cancel" button</li>
+            </ol>
+            <p><strong>Expected Results:</strong></p>
+            <ul>
+                <li>✓ Preview modal closes</li>
+                <li>✓ Info message appears: "Import cancelled. No data was imported."</li>
+                <li>✓ File input is reset (can upload again)</li>
+                <li>✓ No data is imported to the table</li>
+            </ul>
+        </div>
+
+        <div class="test-case">
+            <h3>Test Case 7: Confirm Import from Preview</h3>
+            <p><strong>Objective:</strong> Verify that confirming import proceeds with data processing.</p>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Upload a valid Excel file with complete records and no duplicates</li>
+                <li>When preview modal appears, click "Confirm Import" button</li>
+            </ol>
+            <p><strong>Expected Results:</strong></p>
+            <ul>
+                <li>✓ Preview modal closes</li>
+                <li>✓ Data is processed and imported</li>
+                <li>✓ Success message appears with import summary</li>
+                <li>✓ Member table is populated with player data</li>
+                <li>✓ Filter counts are updated</li>
+            </ul>
+        </div>
+
+        <div class="test-case">
+            <h3>Test Case 8: Preview Shows First 10 Records Only</h3>
+            <p><strong>Objective:</strong> Verify that preview limits display to first 10 records for large files.</p>
+            <p><strong>Steps:</strong></p>
+            <ol>
+                <li>Create an Excel file with more than 10 payment records</li>
+                <li>Upload the file</li>
+            </ol>
+            <p><strong>Expected Results:</strong></p>
+            <ul>
+                <li>✓ Preview table shows exactly 10 records</li>
+                <li>✓ A row at the bottom shows: "... and X more record(s)"</li>
+                <li>✓ Summary section shows correct total count (not just 10)</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Manual Testing Checklist</h2>
+        <p>Use this checklist to verify all functionality:</p>
+        <ul>
+            <li>☐ Preview modal appears after file parsing completes</li>
+            <li>☐ Summary section displays accurate counts</li>
+            <li>☐ Preview table shows record details correctly</li>
+            <li>☐ Warnings appear for incomplete records</li>
+            <li>☐ Warnings appear for unknown membership plans</li>
+            <li>☐ Info message appears for duplicates</li>
+            <li>☐ Error message appears when all records are incomplete</li>
+            <li>☐ Confirm button is disabled when no complete records</li>
+            <li>☐ Cancel button closes modal and resets file input</li>
+            <li>☐ Confirm button proceeds to duplicate handling (if duplicates exist)</li>
+            <li>☐ Confirm button proceeds to data processing (if no duplicates)</li>
+            <li>☐ Preview table scrolls for many records</li>
+            <li>☐ Legend explains status icons</li>
+            <li>☐ Modal is responsive and readable</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>Requirements Validation</h2>
+        <p><strong>Requirement 1.5:</strong> WHEN a valid Excel file is uploaded, THE System SHALL display a preview of the payment records before final import</p>
+        <ul>
+            <li>✓ Preview is displayed after parsing and before final import</li>
+            <li>✓ Preview shows parsed payment records</li>
+            <li>✓ Preview displays record count</li>
+            <li>✓ Preview displays warnings (incomplete records, unknown plans, duplicates)</li>
+            <li>✓ Confirm button allows user to proceed with import</li>
+            <li>✓ Cancel button allows user to reject import</li>
+        </ul>
+    </div>
+
+    <div class="test-section" style="background-color: #d4edda; border-left: 4px solid #28a745;">
+        <h2>✓ Test Completion</h2>
+        <p>After completing all test cases above, verify that:</p>
+        <ol>
+            <li>All test cases pass successfully</li>
+            <li>Preview modal displays correctly in different scenarios</li>
+            <li>User can confirm or cancel import from preview</li>
+            <li>Warnings are displayed appropriately</li>
+            <li>The workflow from upload → preview → confirm → process works smoothly</li>
+        </ol>
+        <p><strong>If all tests pass, Task 14.1 is complete! ✓</strong></p>
+    </div>
+</body>
+</html>

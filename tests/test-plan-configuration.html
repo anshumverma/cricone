@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test: Membership Plan Configuration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .pass { color: green; font-weight: bold; }
+        .fail { color: red; font-weight: bold; }
+        .test-result { margin: 10px 0; }
+        button { margin: 5px; padding: 8px 15px; }
+    </style>
+</head>
+<body>
+    <h1>Membership Plan Configuration Tests</h1>
+    <div id="testResults"></div>
+
+    <script>
+        // Minimal implementation of plan configuration logic for testing
+        let membershipPlans = [];
+        let paymentRecords = [];
+
+        function initializeDefaultPlans() {
+            membershipPlans = [
+                { name: 'Monthly', durationDays: 30 },
+                { name: 'Quarterly', durationDays: 90 },
+                { name: 'Annual', durationDays: 365 }
+            ];
+        }
+
+        function addPlan(name, durationDays) {
+            // Validate plan name and duration
+            if (!name || typeof name !== 'string' || name.trim() === '') {
+                throw new Error('Plan name is required');
+            }
+
+            if (!durationDays || typeof durationDays !== 'number' || durationDays <= 0) {
+                throw new Error('Duration must be a positive number');
+            }
+
+            // Check if plan already exists
+            const existingPlan = membershipPlans.find(p => p.name === name);
+            if (existingPlan) {
+                throw new Error('A plan with this name already exists');
+            }
+
+            // Add plan
+            membershipPlans.push({ name, durationDays });
+            return true;
+        }
+
+        function deletePlan(planName) {
+            // Check if plan is being used by any payment records
+            const isUsed = paymentRecords.some(record => record.membershipPlan === planName);
+            
+            if (isUsed) {
+                throw new Error('Cannot delete plan - it is being used by payment records');
+            }
+
+            // Remove plan
+            const initialLength = membershipPlans.length;
+            membershipPlans = membershipPlans.filter(p => p.name !== planName);
+            
+            return membershipPlans.length < initialLength;
+        }
+
+        function getPlan(planName) {
+            return membershipPlans.find(p => p.name === planName);
+        }
+
+        // Test Suite
+        const tests = [];
+
+        function test(name, fn) {
+            tests.push({ name, fn });
+        }
+
+        function runTests() {
+            const resultsDiv = document.getElementById('testResults');
+            let passed = 0;
+            let failed = 0;
+
+            tests.forEach(({ name, fn }) => {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'test-result';
+                
+                try {
+                    // Reset state before each test
+                    membershipPlans = [];
+                    paymentRecords = [];
+                    
+                    fn();
+                    resultDiv.innerHTML = `<span class="pass">✓</span> ${name}`;
+                    passed++;
+                } catch (error) {
+                    resultDiv.innerHTML = `<span class="fail">✗</span> ${name}<br><small>${error.message}</small>`;
+                    failed++;
+                }
+                
+                resultsDiv.appendChild(resultDiv);
+            });
+
+            const summary = document.createElement('div');
+            summary.className = 'test-section';
+            summary.innerHTML = `<h2>Test Summary</h2><p>Passed: ${passed} | Failed: ${failed}</p>`;
+            resultsDiv.insertBefore(summary, resultsDiv.firstChild);
+        }
+
+        // Test Cases
+
+        test('Requirement 11.6: Default plans should be initialized', () => {
+            initializeDefaultPlans();
+            if (membershipPlans.length !== 3) {
+                throw new Error(`Expected 3 default plans, got ${membershipPlans.length}`);
+            }
+            
+            const monthly = getPlan('Monthly');
+            const quarterly = getPlan('Quarterly');
+            const annual = getPlan('Annual');
+            
+            if (!monthly || monthly.durationDays !== 30) {
+                throw new Error('Monthly plan not configured correctly');
+            }
+            if (!quarterly || quarterly.durationDays !== 90) {
+                throw new Error('Quarterly plan not configured correctly');
+            }
+            if (!annual || annual.durationDays !== 365) {
+                throw new Error('Annual plan not configured correctly');
+            }
+        });
+
+        test('Requirement 11.1: Should allow adding a new plan with name and duration', () => {
+            const result = addPlan('Weekly', 7);
+            if (!result) {
+                throw new Error('Failed to add plan');
+            }
+            
+            const plan = getPlan('Weekly');
+            if (!plan || plan.durationDays !== 7) {
+                throw new Error('Plan not stored correctly');
+            }
+        });
+
+        test('Requirement 11.2: Should reject plan without name', () => {
+            let errorThrown = false;
+            try {
+                addPlan('', 30);
+            } catch (error) {
+                errorThrown = true;
+            }
+            
+            if (!errorThrown) {
+                throw new Error('Should have thrown error for missing name');
+            }
+        });
+
+        test('Requirement 11.2: Should reject plan without duration', () => {
+            let errorThrown = false;
+            try {
+                addPlan('Test Plan', null);
+            } catch (error) {
+                errorThrown = true;
+            }
+            
+            if (!errorThrown) {
+                throw new Error('Should have thrown error for missing duration');
+            }
+        });
+
+        test('Requirement 11.2: Should reject plan with zero duration', () => {
+            let errorThrown = false;
+            try {
+                addPlan('Test Plan', 0);
+            } catch (error) {
+                errorThrown = true;
+            }
+            
+            if (!errorThrown) {
+                throw new Error('Should have thrown error for zero duration');
+            }
+        });
+
+        test('Requirement 11.2: Should reject plan with negative duration', () => {
+            let errorThrown = false;
+            try {
+                addPlan('Test Plan', -10);
+            } catch (error) {
+                errorThrown = true;
+            }
+            
+            if (!errorThrown) {
+                throw new Error('Should have thrown error for negative duration');
+            }
+        });
+
+        test('Requirement 11.3: Should store plan in memory', () => {
+            addPlan('Biweekly', 14);
+            addPlan('Semester', 180);
+            
+            if (membershipPlans.length !== 2) {
+                throw new Error(`Expected 2 plans, got ${membershipPlans.length}`);
+            }
+            
+            const biweekly = getPlan('Biweekly');
+            const semester = getPlan('Semester');
+            
+            if (!biweekly || !semester) {
+                throw new Error('Plans not accessible from memory');
+            }
+        });
+
+        test('Should reject duplicate plan names', () => {
+            addPlan('Monthly', 30);
+            
+            let errorThrown = false;
+            try {
+                addPlan('Monthly', 60);
+            } catch (error) {
+                errorThrown = true;
+            }
+            
+            if (!errorThrown) {
+                throw new Error('Should have thrown error for duplicate plan name');
+            }
+        });
+
+        test('Should allow deleting unused plans', () => {
+            addPlan('Test Plan', 15);
+            const result = deletePlan('Test Plan');
+            
+            if (!result) {
+                throw new Error('Failed to delete plan');
+            }
+            
+            const plan = getPlan('Test Plan');
+            if (plan) {
+                throw new Error('Plan still exists after deletion');
+            }
+        });
+
+        test('Should prevent deleting plans in use', () => {
+            addPlan('Active Plan', 30);
+            paymentRecords.push({
+                payerName: 'John Doe',
+                membershipPlan: 'Active Plan',
+                paymentAmount: 100,
+                paymentDate: new Date()
+            });
+            
+            let errorThrown = false;
+            try {
+                deletePlan('Active Plan');
+            } catch (error) {
+                errorThrown = true;
+            }
+            
+            if (!errorThrown) {
+                throw new Error('Should have thrown error when deleting plan in use');
+            }
+        });
+
+        test('Should handle multiple plans with different durations', () => {
+            addPlan('Plan A', 10);
+            addPlan('Plan B', 20);
+            addPlan('Plan C', 30);
+            
+            const planA = getPlan('Plan A');
+            const planB = getPlan('Plan B');
+            const planC = getPlan('Plan C');
+            
+            if (planA.durationDays !== 10 || planB.durationDays !== 20 || planC.durationDays !== 30) {
+                throw new Error('Plans not stored with correct durations');
+            }
+        });
+
+        // Run all tests
+        runTests();
+    </script>
+</body>
+</html>

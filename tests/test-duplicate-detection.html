@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Duplicate Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .pass {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .fail {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Duplicate Detection Logic Tests</h1>
+    <div id="test-results"></div>
+
+    <script>
+        // Copy the duplicate detection functions from app.js
+        function createDuplicateKey(record) {
+            if (!record.payerName || !record.paymentDate || !record.paymentAmount) {
+                return null;
+            }
+            
+            const dateStr = record.paymentDate instanceof Date 
+                ? record.paymentDate.toISOString().split('T')[0]
+                : String(record.paymentDate);
+            
+            const payerName = String(record.payerName).toLowerCase().trim();
+            const amount = Number(record.paymentAmount).toFixed(2);
+            
+            return `${dateStr}|${payerName}|${amount}`;
+        }
+
+        function detectDuplicates(records) {
+            const duplicateGroups = [];
+            const seen = new Map();
+            
+            for (let i = 0; i < records.length; i++) {
+                const record = records[i];
+                const key = createDuplicateKey(record);
+                
+                if (!key) {
+                    continue;
+                }
+                
+                if (seen.has(key)) {
+                    const originalIndex = seen.get(key);
+                    let group = duplicateGroups.find(g => g.indices.includes(originalIndex));
+                    
+                    if (group) {
+                        group.indices.push(i);
+                    } else {
+                        duplicateGroups.push({
+                            key,
+                            indices: [originalIndex, i],
+                            payerName: record.payerName,
+                            paymentDate: record.paymentDate,
+                            paymentAmount: record.paymentAmount
+                        });
+                    }
+                } else {
+                    seen.set(key, i);
+                }
+            }
+            
+            return {
+                hasDuplicates: duplicateGroups.length > 0,
+                duplicateGroups,
+                totalDuplicates: duplicateGroups.reduce((sum, g) => sum + g.indices.length - 1, 0)
+            };
+        }
+
+        function excludeDuplicates(records, duplicateInfo) {
+            const { duplicateGroups } = duplicateInfo;
+            const indicesToExclude = new Set();
+            
+            for (const group of duplicateGroups) {
+                for (let i = 1; i < group.indices.length; i++) {
+                    indicesToExclude.add(group.indices[i]);
+                }
+            }
+            
+            return records.map((record, index) => {
+                if (indicesToExclude.has(index)) {
+                    return {
+                        ...record,
+                        isExcludedDuplicate: true,
+                        isComplete: false
+                    };
+                }
+                return record;
+            }).filter(record => !record.isExcludedDuplicate);
+        }
+
+        // Test cases
+        const tests = [];
+
+        // Test 1: No duplicates
+        tests.push({
+            name: "Test 1: No duplicates",
+            records: [
+                { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                { payerName: "Jane Smith", paymentDate: new Date("2024-01-02"), paymentAmount: 150 },
+                { payerName: "Bob Johnson", paymentDate: new Date("2024-01-03"), paymentAmount: 200 }
+            ],
+            expected: {
+                hasDuplicates: false,
+                totalDuplicates: 0
+            }
+        });
+
+        // Test 2: Exact duplicates (same date, amount, payer)
+        tests.push({
+            name: "Test 2: Exact duplicates",
+            records: [
+                { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                { payerName: "Jane Smith", paymentDate: new Date("2024-01-02"), paymentAmount: 150 }
+            ],
+            expected: {
+                hasDuplicates: true,
+                totalDuplicates: 1
+            }
+        });
+
+        // Test 3: Multiple duplicate groups
+        tests.push({
+            name: "Test 3: Multiple duplicate groups",
+            records: [
+                { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                { payerName: "Jane Smith", paymentDate: new Date("2024-01-02"), paymentAmount: 150 },
+                { payerName: "Jane Smith", paymentDate: new Date("2024-01-02"), paymentAmount: 150 },
+                { payerName: "Bob Johnson", paymentDate: new Date("2024-01-03"), paymentAmount: 200 }
+            ],
+            expected: {
+                hasDuplicates: true,
+                totalDuplicates: 2
+            }
+        });
+
+        // Test 4: Triple duplicates
+        tests.push({
+            name: "Test 4: Triple duplicates",
+            records: [
+                { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 }
+            ],
+            expected: {
+                hasDuplicates: true,
+                totalDuplicates: 2
+            }
+        });
+
+        // Test 5: Case insensitive payer name
+        tests.push({
+            name: "Test 5: Case insensitive payer name",
+            records: [
+                { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                { payerName: "john doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                { payerName: "JOHN DOE", paymentDate: new Date("2024-01-01"), paymentAmount: 100 }
+            ],
+            expected: {
+                hasDuplicates: true,
+                totalDuplicates: 2
+            }
+        });
+
+        // Test 6: Different amounts - not duplicates
+        tests.push({
+            name: "Test 6: Different amounts - not duplicates",
+            records: [
+                { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 150 }
+            ],
+            expected: {
+                hasDuplicates: false,
+                totalDuplicates: 0
+            }
+        });
+
+        // Test 7: Different dates - not duplicates
+        tests.push({
+            name: "Test 7: Different dates - not duplicates",
+            records: [
+                { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                { payerName: "John Doe", paymentDate: new Date("2024-01-02"), paymentAmount: 100 }
+            ],
+            expected: {
+                hasDuplicates: false,
+                totalDuplicates: 0
+            }
+        });
+
+        // Test 8: Missing required fields - should be ignored
+        tests.push({
+            name: "Test 8: Missing required fields",
+            records: [
+                { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                { payerName: null, paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                { payerName: "John Doe", paymentDate: null, paymentAmount: 100 }
+            ],
+            expected: {
+                hasDuplicates: false,
+                totalDuplicates: 0
+            }
+        });
+
+        // Test 9: Exclude duplicates functionality
+        tests.push({
+            name: "Test 9: Exclude duplicates",
+            records: [
+                { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                { payerName: "John Doe", paymentDate: new Date("2024-01-01"), paymentAmount: 100 },
+                { payerName: "Jane Smith", paymentDate: new Date("2024-01-02"), paymentAmount: 150 }
+            ],
+            testExclusion: true,
+            expected: {
+                filteredCount: 2
+            }
+        });
+
+        // Run tests
+        const resultsDiv = document.getElementById('test-results');
+        let passCount = 0;
+        let failCount = 0;
+
+        tests.forEach((test, index) => {
+            const section = document.createElement('div');
+            section.className = 'test-section';
+            
+            const title = document.createElement('h3');
+            title.textContent = test.name;
+            section.appendChild(title);
+
+            try {
+                const duplicateInfo = detectDuplicates(test.records);
+                
+                let passed = true;
+                let message = '';
+
+                if (test.testExclusion) {
+                    const filtered = excludeDuplicates(test.records, duplicateInfo);
+                    passed = filtered.length === test.expected.filteredCount;
+                    message = `Expected ${test.expected.filteredCount} records after exclusion, got ${filtered.length}`;
+                } else {
+                    const hasDuplicatesMatch = duplicateInfo.hasDuplicates === test.expected.hasDuplicates;
+                    const totalDuplicatesMatch = duplicateInfo.totalDuplicates === test.expected.totalDuplicates;
+                    passed = hasDuplicatesMatch && totalDuplicatesMatch;
+                    message = `Expected hasDuplicates: ${test.expected.hasDuplicates}, got: ${duplicateInfo.hasDuplicates}\n`;
+                    message += `Expected totalDuplicates: ${test.expected.totalDuplicates}, got: ${duplicateInfo.totalDuplicates}`;
+                }
+
+                const result = document.createElement('div');
+                result.className = `test-result ${passed ? 'pass' : 'fail'}`;
+                result.textContent = passed ? '✓ PASS' : '✗ FAIL';
+                section.appendChild(result);
+
+                const details = document.createElement('pre');
+                details.textContent = message;
+                section.appendChild(details);
+
+                if (passed) {
+                    passCount++;
+                } else {
+                    failCount++;
+                }
+
+            } catch (error) {
+                const result = document.createElement('div');
+                result.className = 'test-result fail';
+                result.textContent = '✗ ERROR: ' + error.message;
+                section.appendChild(result);
+                failCount++;
+            }
+
+            resultsDiv.appendChild(section);
+        });
+
+        // Summary
+        const summary = document.createElement('div');
+        summary.className = 'test-section';
+        summary.innerHTML = `<h2>Test Summary</h2><p>Passed: ${passCount} | Failed: ${failCount} | Total: ${tests.length}</p>`;
+        resultsDiv.insertBefore(summary, resultsDiv.firstChild);
+    </script>
+</body>
+</html>

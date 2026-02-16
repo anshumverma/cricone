@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Filtering Functionality</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .filter-btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: 2px solid #667eea;
+            background-color: white;
+            color: #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .filter-btn.active {
+            background-color: #667eea;
+            color: white;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-active { background-color: #d4edda; color: #155724; }
+        .status-expiring_soon { background-color: #fff3cd; color: #856404; }
+        .status-lapsed { background-color: #f8d7da; color: #721c24; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            color: #667eea;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        .pass { color: green; font-weight: bold; }
+        .fail { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Filtering Functionality Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Data</h2>
+        <p>Creating test players with different statuses:</p>
+        <ul>
+            <li>3 Active members</li>
+            <li>2 Expiring Soon members</li>
+            <li>2 Lapsed members</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>Filter Buttons</h2>
+        <div id="filterButtons"></div>
+        <div id="recordCount" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Filtered Results</h2>
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Player Name</th>
+                    <th>Status</th>
+                    <th>Days Until Expiry</th>
+                </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+        </table>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        // Mock test data
+        const testPlayers = [
+            { playerName: 'Player 1', status: 'active', daysUntilExpiry: 20 },
+            { playerName: 'Player 2', status: 'active', daysUntilExpiry: 15 },
+            { playerName: 'Player 3', status: 'active', daysUntilExpiry: 30 },
+            { playerName: 'Player 4', status: 'expiring_soon', daysUntilExpiry: 5 },
+            { playerName: 'Player 5', status: 'expiring_soon', daysUntilExpiry: 3 },
+            { playerName: 'Player 6', status: 'lapsed', daysUntilExpiry: -10 },
+            { playerName: 'Player 7', status: 'lapsed', daysUntilExpiry: -5 }
+        ];
+
+        let currentFilter = 'all';
+
+        // Count players by status
+        function getCounts() {
+            return {
+                all: testPlayers.length,
+                active: testPlayers.filter(p => p.status === 'active').length,
+                expiring_soon: testPlayers.filter(p => p.status === 'expiring_soon').length,
+                lapsed: testPlayers.filter(p => p.status === 'lapsed').length
+            };
+        }
+
+        // Get filtered players
+        function getFilteredPlayers() {
+            if (currentFilter === 'all') {
+                return testPlayers;
+            }
+            return testPlayers.filter(p => p.status === currentFilter);
+        }
+
+        // Render filter buttons
+        function renderFilterButtons() {
+            const counts = getCounts();
+            const filterButtons = document.getElementById('filterButtons');
+            
+            const filters = [
+                { key: 'all', label: 'All Members' },
+                { key: 'active', label: 'Active' },
+                { key: 'expiring_soon', label: 'Expiring Soon' },
+                { key: 'lapsed', label: 'Lapsed' }
+            ];
+
+            filterButtons.innerHTML = filters.map(f => 
+                `<button class="filter-btn ${currentFilter === f.key ? 'active' : ''}" 
+                         onclick="handleFilterChange('${f.key}')">
+                    ${f.label} (${counts[f.key]})
+                </button>`
+            ).join('');
+        }
+
+        // Handle filter change
+        function handleFilterChange(filter) {
+            currentFilter = filter;
+            renderFilterButtons();
+            renderTable();
+            updateRecordCount();
+        }
+
+        // Render table
+        function renderTable() {
+            const tbody = document.getElementById('resultsBody');
+            const filtered = getFilteredPlayers();
+
+            tbody.innerHTML = filtered.map(p => `
+                <tr>
+                    <td>${p.playerName}</td>
+                    <td><span class="status-badge status-${p.status}">${p.status.replace('_', ' ').toUpperCase()}</span></td>
+                    <td>${p.daysUntilExpiry}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Update record count
+        function updateRecordCount() {
+            const recordCount = document.getElementById('recordCount');
+            const total = testPlayers.length;
+            const filtered = getFilteredPlayers().length;
+
+            if (currentFilter === 'all') {
+                recordCount.textContent = `Showing: ${total} total members`;
+            } else {
+                recordCount.textContent = `Showing: ${filtered} of ${total} members`;
+            }
+        }
+
+        // Run tests
+        function runTests() {
+            const results = [];
+            const counts = getCounts();
+
+            // Test 1: Check counts are correct
+            results.push({
+                name: 'Count Accuracy',
+                pass: counts.all === 7 && counts.active === 3 && counts.expiring_soon === 2 && counts.lapsed === 2,
+                details: `All: ${counts.all}, Active: ${counts.active}, Expiring Soon: ${counts.expiring_soon}, Lapsed: ${counts.lapsed}`
+            });
+
+            // Test 2: Filter 'all' shows all players
+            currentFilter = 'all';
+            const allFiltered = getFilteredPlayers();
+            results.push({
+                name: 'Filter All',
+                pass: allFiltered.length === 7,
+                details: `Expected 7, got ${allFiltered.length}`
+            });
+
+            // Test 3: Filter 'active' shows only active
+            currentFilter = 'active';
+            const activeFiltered = getFilteredPlayers();
+            results.push({
+                name: 'Filter Active',
+                pass: activeFiltered.length === 3 && activeFiltered.every(p => p.status === 'active'),
+                details: `Expected 3 active, got ${activeFiltered.length}`
+            });
+
+            // Test 4: Filter 'expiring_soon' shows only expiring soon
+            currentFilter = 'expiring_soon';
+            const expiringFiltered = getFilteredPlayers();
+            results.push({
+                name: 'Filter Expiring Soon',
+                pass: expiringFiltered.length === 2 && expiringFiltered.every(p => p.status === 'expiring_soon'),
+                details: `Expected 2 expiring soon, got ${expiringFiltered.length}`
+            });
+
+            // Test 5: Filter 'lapsed' shows only lapsed
+            currentFilter = 'lapsed';
+            const lapsedFiltered = getFilteredPlayers();
+            results.push({
+                name: 'Filter Lapsed',
+                pass: lapsedFiltered.length === 2 && lapsedFiltered.every(p => p.status === 'lapsed'),
+                details: `Expected 2 lapsed, got ${lapsedFiltered.length}`
+            });
+
+            // Display results
+            const testResults = document.getElementById('testResults');
+            testResults.innerHTML = results.map(r => `
+                <div style="margin: 10px 0;">
+                    <span class="${r.pass ? 'pass' : 'fail'}">${r.pass ? '✓' : '✗'}</span>
+                    <strong>${r.name}:</strong> ${r.details}
+                </div>
+            `).join('');
+
+            // Reset to 'all' filter
+            currentFilter = 'all';
+        }
+
+        // Initialize
+        renderFilterButtons();
+        renderTable();
+        updateRecordCount();
+        runTests();
+    </script>
+</body>
+</html>
